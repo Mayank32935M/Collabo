@@ -9,7 +9,7 @@
 | Step | Milestone Name | Status |
 | :---: | :--- | :---: |
 | **01** | Project Foundation, Git Hygiene & Core Architecture | **COMPLETED** |
-| **02** | Next.js App Router Structure & UI Design System | `NOT_STARTED` |
+| **02** | Next.js App Router Structure & UI Design System | **COMPLETED** |
 | **03** | React State & Interactive Canvas Toolbars | `NOT_STARTED` |
 | **04** | Single-User Canvas with React Konva | `NOT_STARTED` |
 | **05** | Canvas Object Manipulation, Undo/Redo & Local Storage | `NOT_STARTED` |
@@ -45,7 +45,7 @@
 ---
 
 ### Step 2: Next.js App Router Structure & UI Design System
-- **Status**: `NOT_STARTED`
+- **Status**: **COMPLETED**
 - **Learning Objectives**:
   - Learn Next.js App Router conventions: layouts, pages, route groups, and component composition.
   - Build a reusable UI design system (buttons, badges, modal dialogs) using Tailwind CSS.
