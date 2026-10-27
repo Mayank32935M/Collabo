@@ -56,6 +56,7 @@ export const CanvasStateHUD: React.FC<CanvasStateHUDProps> = ({ state, lastActio
         Press <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">V</kbd>,{" "}
         <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">P</kbd>,{" "}
         <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">R</kbd>,{" "}
+        <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">C</kbd>,{" "}
         <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">S</kbd>,{" "}
         <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">T</kbd>,{" "}
         <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono">E</kbd>

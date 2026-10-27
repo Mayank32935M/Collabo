@@ -48,6 +48,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
         return "cursor-default";
       case "pen":
       case "rectangle":
+      case "circle":
       case "sticky":
         return "cursor-crosshair";
       case "text":
@@ -91,6 +92,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
               {toolbarState.activeTool === "select" && "👆"}
               {toolbarState.activeTool === "pen" && "✏️"}
               {toolbarState.activeTool === "rectangle" && "⬜"}
+              {toolbarState.activeTool === "circle" && "⭕"}
               {toolbarState.activeTool === "sticky" && "📝"}
               {toolbarState.activeTool === "text" && "🔤"}
               {toolbarState.activeTool === "eraser" && "🧹"}
@@ -115,6 +117,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">V</kbd>,{" "}
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">P</kbd>,{" "}
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">R</kbd>,{" "}
+            <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">C</kbd>,{" "}
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">S</kbd>,{" "}
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">T</kbd>,{" "}
             <kbd className="rounded bg-slate-100 px-1 py-0.5 border font-mono text-slate-800">E</kbd>{" "}

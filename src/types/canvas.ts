@@ -7,6 +7,7 @@ export type CanvasTool =
   | "select"
   | "pen"
   | "rectangle"
+  | "circle"
   | "sticky"
   | "text"
   | "eraser";
@@ -64,7 +65,7 @@ export const CANVAS_TOOLS: ToolDefinition[] = [
   },
   {
     id: "circle",
-    label: "circle",
+    label: "Circle",
     shortcut: "C",
     icon: "circle",
     description: "Draw circles and ellipses",
