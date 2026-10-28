@@ -11,7 +11,7 @@
 | **01** | Project Foundation, Git Hygiene & Core Architecture | **COMPLETED** |
 | **02** | Next.js App Router Structure & UI Design System | **COMPLETED** |
 | **03** | React State & Interactive Canvas Toolbars | **COMPLETED** |
-| **04** | Single-User Canvas with React Konva | `NOT_STARTED` |
+| **04** | Single-User Canvas with React Konva | **COMPLETED** |
 | **05** | Canvas Object Manipulation, Undo/Redo & Local Storage | `NOT_STARTED` |
 | **06** | Backend API & PostgreSQL Database Persistence | `NOT_STARTED` |
 | **07** | Custom Real-Time WebSocket / Socket.IO Server | `NOT_STARTED` |
@@ -80,7 +80,7 @@
 ---
 
 ### Step 4: Single-User Canvas with React Konva
-- **Status**: `NOT_STARTED`
+- **Status**: **COMPLETED**
 - **Learning Objectives**:
   - Learn HTML5 2D Canvas rendering principles and declarative canvas libraries.
   - Understand stage, layer, and shape abstractions in Konva.js.
