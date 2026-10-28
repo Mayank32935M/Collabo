@@ -39,9 +39,9 @@ export default function Home() {
   const roadmapMilestones = [
     { step: "Step 01", name: "Foundation & Git Architecture", status: "Completed", current: false },
     { step: "Step 02", name: "Next.js UI & Board Routing", status: "Completed", current: false },
-    { step: "Step 03", name: "Interactive State & Controls", status: "Completed", current: true },
-    { step: "Step 04", name: "Single-User Konva Canvas", status: "Up Next", current: false },
-    { step: "Step 05", name: "Object Manipulation & Persistence", status: "Planned", current: false },
+    { step: "Step 03", name: "Interactive State & Controls", status: "Completed", current: false },
+    { step: "Step 04", name: "Single-User Konva Canvas", status: "Completed", current: true },
+    { step: "Step 05", name: "Object Manipulation & Persistence", status: "Up Next", current: false },
     { step: "Step 06", name: "Backend & Database Schema", status: "Planned", current: false },
     { step: "Step 07", name: "Real-time Socket.IO Server", status: "Planned", current: false },
     { step: "Step 08", name: "Live Multiplayer & Cursors", status: "Planned", current: false },
@@ -72,7 +72,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="indigo" size="sm" dot>
-              Step 3: Interactive State
+              Step 4: Konva 2D Engine
             </Badge>
             <Link href="/board/quickstart">
               <Button variant="primary" size="sm">
@@ -116,16 +116,18 @@ export default function Home() {
             <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-indigo-100 bg-white/90 p-6 text-left shadow-xl shadow-indigo-100/40">
               <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-lg text-white font-bold">
-                  03
+                  04
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    Current Milestone: Step 3 React State &amp; Canvas Toolbars
+                    Current Milestone: Step 4 Single-User Konva Canvas Engine
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                    We have implemented the interactive floating canvas toolbar, tool selection state,
-                    color palette picker, stroke thickness controls, and global keyboard shortcuts (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">V</kbd>, <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">P</kbd>, <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">R</kbd>, <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">S</kbd>, <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">T</kbd>, <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">E</kbd>).
-                    Step 4 will mount the 2D Konva canvas engine.
+                    We have mounted the HTML5 2D canvas engine with React Konva! You can now draw
+                    smooth freehand vector lines with the Pen (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">P</kbd>),
+                    create boxes with the Rectangle tool (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">R</kbd>),
+                    draw circles (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">C</kbd>), drop colorful sticky notes (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">S</kbd>),
+                    and drag elements with the Select tool (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">V</kbd>).
                   </p>
                 </div>
               </div>
@@ -230,7 +232,7 @@ export default function Home() {
             COLLABO &bull; Think together. Build ideas together.
           </p>
           <p className="text-xs text-slate-400">
-            Step 3: State &amp; Interactive Canvas Controls &bull; Designed for portfolio-grade engineering
+            Step 4: Single-User Konva Canvas &bull; Designed for portfolio-grade engineering
           </p>
         </div>
       </footer>
