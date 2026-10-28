@@ -1,6 +1,6 @@
 /**
  * COLLABO — Canvas & Toolbar Type Definitions
- * Prepares the state contracts for canvas interactions and upcoming Konva integration.
+ * Defines types for canvas tools, palette colors, and serializable canvas element models.
  */
 
 export type CanvasTool =
@@ -43,6 +43,13 @@ export const CANVAS_TOOLS: ToolDefinition[] = [
     description: "Create geometric boxes and containers",
   },
   {
+    id: "circle",
+    label: "Circle",
+    shortcut: "C",
+    icon: "circle",
+    description: "Draw geometric circles and nodes",
+  },
+  {
     id: "sticky",
     label: "Sticky Note",
     shortcut: "S",
@@ -62,13 +69,6 @@ export const CANVAS_TOOLS: ToolDefinition[] = [
     shortcut: "E",
     icon: "eraser",
     description: "Delete canvas elements on click",
-  },
-  {
-    id: "circle",
-    label: "Circle",
-    shortcut: "C",
-    icon: "circle",
-    description: "Draw circles and ellipses",
   },
 ];
 
@@ -99,3 +99,63 @@ export interface ToolbarState {
   activeColor: string;
   strokeWidth: StrokeWidth;
 }
+
+// -------------------------------------------------------------
+// Canvas Elements (Data Models for In-Memory & Future Database)
+// -------------------------------------------------------------
+
+export type ElementType = "pen" | "rectangle" | "circle" | "sticky" | "text";
+
+export interface BaseElement {
+  id: string;
+  type: ElementType;
+  color: string;
+  strokeWidth: number;
+}
+
+export interface PenElement extends BaseElement {
+  type: "pen";
+  points: number[];
+}
+
+export interface RectElement extends BaseElement {
+  type: "rectangle";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill?: string;
+}
+
+export interface CircleElement extends BaseElement {
+  type: "circle";
+  x: number;
+  y: number;
+  radius: number;
+  fill?: string;
+}
+
+export interface StickyElement extends BaseElement {
+  type: "sticky";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  fill: string;
+}
+
+export interface TextElement extends BaseElement {
+  type: "text";
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+}
+
+export type CanvasElement =
+  | PenElement
+  | RectElement
+  | CircleElement
+  | StickyElement
+  | TextElement;
