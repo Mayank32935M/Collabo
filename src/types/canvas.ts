@@ -111,6 +111,7 @@ export interface BaseElement {
   type: ElementType;
   color: string;
   strokeWidth: number;
+  rotation?: number;
 }
 
 export interface PenElement extends BaseElement {
