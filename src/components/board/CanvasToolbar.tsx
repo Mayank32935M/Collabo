@@ -15,6 +15,10 @@ export interface CanvasToolbarProps {
   onToolChange: (tool: CanvasTool) => void;
   onColorChange: (color: string) => void;
   onStrokeWidthChange: (width: StrokeWidth) => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 // Crisp inline SVGs for zero-dependency rendering
@@ -78,11 +82,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onToolChange,
   onColorChange,
   onStrokeWidthChange,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }) => {
-  // Global keyboard shortcuts (V, P, R, S, T, E)
+  // Global keyboard shortcuts (Tools + Undo/Redo)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing inside an input or textarea
+      // Don't trigger shortcuts when typing inside an input, textarea, or editable element
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
@@ -92,19 +100,40 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         return;
       }
 
-      // Shortcut map matching our tool definition
-      const key = e.key.toUpperCase();
-      const matchedTool = CANVAS_TOOLS.find((t) => t.shortcut === key);
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
 
-      if (matchedTool) {
+      // Undo shortcut: Ctrl+Z / Cmd+Z
+      if (isCtrlOrCmd && e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();
-        onToolChange(matchedTool.id);
+        if (canUndo && onUndo) onUndo();
+        return;
+      }
+
+      // Redo shortcut: Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z
+      if (
+        (isCtrlOrCmd && e.key.toLowerCase() === "y") ||
+        (isCtrlOrCmd && e.shiftKey && e.key.toLowerCase() === "z")
+      ) {
+        e.preventDefault();
+        if (canRedo && onRedo) onRedo();
+        return;
+      }
+
+      // Tool shortcut map (V, P, R, C, S, T, E)
+      if (!isCtrlOrCmd && !e.altKey) {
+        const key = e.key.toUpperCase();
+        const matchedTool = CANVAS_TOOLS.find((t) => t.shortcut === key);
+
+        if (matchedTool) {
+          e.preventDefault();
+          onToolChange(matchedTool.id);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onToolChange]);
+  }, [onToolChange, onUndo, onRedo, canUndo, canRedo]);
 
   return (
     <aside
@@ -114,6 +143,36 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     >
       {/* Floating Toolbar Shell */}
       <div className="flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-xl shadow-slate-300/40 backdrop-blur-md">
+        {/* Undo / Redo History Controls */}
+        <div className="flex items-center gap-1 pr-2 border-r border-slate-200">
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+            aria-label="Redo"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 14 5-5-5-5" />
+              <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13" />
+            </svg>
+          </button>
+        </div>
+
         {/* Tool Buttons Group */}
         <div className="flex items-center gap-1 pr-2 border-r border-slate-200">
           {CANVAS_TOOLS.map((tool) => {
@@ -126,20 +185,22 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 aria-pressed={isActive}
                 onClick={() => onToolChange(tool.id)}
                 title={`${tool.label} (${tool.shortcut})`}
-                className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isActive
+                className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isActive
                     ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-200 scale-105"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
+                }`}
               >
                 <ToolIcon icon={tool.icon} />
                 <span className="sr-only">{tool.label}</span>
 
-                {/* Subtle Shortcut Hint Badge */}
+                {/* Shortcut Hint Badge */}
                 <span
-                  className={`absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold ${isActive
+                  className={`absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold ${
+                    isActive
                       ? "bg-amber-400 text-slate-900"
                       : "bg-slate-200 text-slate-600 opacity-0 group-hover:opacity-100"
-                    }`}
+                  }`}
                 >
                   {tool.shortcut}
                 </span>
@@ -162,8 +223,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 onClick={() => onColorChange(color.hex)}
                 title={color.name}
                 aria-label={`Select ${color.name}`}
-                className={`relative h-6 w-6 rounded-full transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${isSelected ? "scale-115 ring-2 ring-slate-800 ring-offset-2" : "hover:scale-105"
-                  }`}
+                className={`relative h-6 w-6 rounded-full transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                  isSelected ? "scale-115 ring-2 ring-slate-800 ring-offset-2" : "hover:scale-105"
+                }`}
                 style={{ backgroundColor: color.hex }}
               >
                 {isSelected && (
@@ -190,10 +252,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                 onClick={() => onStrokeWidthChange(width.value)}
                 title={`${width.label} stroke (${width.value}px)`}
                 aria-label={`${width.label} stroke`}
-                className={`flex h-8 px-2 items-center justify-center rounded-lg text-xs font-semibold transition ${isSelected
+                className={`flex h-8 px-2 items-center justify-center rounded-lg text-xs font-semibold transition ${
+                  isSelected
                     ? "bg-slate-900 text-white"
                     : "text-slate-600 hover:bg-slate-100"
-                  }`}
+                }`}
               >
                 <span
                   className="rounded-full bg-current"
