@@ -5,9 +5,9 @@ import dynamic from "next/dynamic";
 import { BoardHeader } from "@/components/board/BoardHeader";
 import { CanvasToolbar } from "@/components/board/CanvasToolbar";
 import { CanvasStateHUD } from "@/components/board/CanvasStateHUD";
+import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import {
   CANVAS_TOOLS,
-  CanvasElement,
   CanvasTool,
   StrokeWidth,
   ToolbarState,
@@ -34,22 +34,38 @@ export interface BoardWorkspaceProps {
 }
 
 export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
-  // In-memory array of canvas elements (Step 4 foundation)
-  const [elements, setElements] = useState<CanvasElement[]>([]);
+  // Milestone 5: History stack & LocalStorage persistence hook
+  const {
+    elements,
+    setElementsLive,
+    commitElements,
+    undo,
+    redo,
+    clearCanvas,
+    canUndo,
+    canRedo,
+    isHydrated,
+  } = useCanvasHistory(roomId);
+
+  // Selected element ID for Transformer manipulation
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Toolbar & drawing attributes state
   const [toolbarState, setToolbarState] = useState<ToolbarState>({
-    activeTool: "pen",
+    activeTool: "select",
     activeColor: "#6366f1",
     strokeWidth: 4,
   });
 
-  const [lastAction, setLastAction] = useState<string>("Ready to draw (Pen tool)");
+  const [lastAction, setLastAction] = useState<string>("Select tool active");
 
   const handleToolChange = (tool: CanvasTool) => {
     const def = CANVAS_TOOLS.find((t) => t.id === tool);
     setToolbarState((prev) => ({ ...prev, activeTool: tool }));
     setLastAction(`Tool: ${def?.label || tool}`);
+    if (tool !== "select") {
+      setSelectedId(null);
+    }
   };
 
   const handleColorChange = (color: string) => {
@@ -62,11 +78,24 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
     setLastAction(`Thickness: ${width}px`);
   };
 
-  const handleClearCanvas = () => {
+  const handleUndo = () => {
+    undo();
+    setSelectedId(null);
+    setLastAction("Undo action");
+  };
+
+  const handleRedo = () => {
+    redo();
+    setSelectedId(null);
+    setLastAction("Redo action");
+  };
+
+  const handleClear = () => {
     if (elements.length === 0) return;
     if (window.confirm(`Clear all ${elements.length} elements from this board?`)) {
-      setElements([]);
-      setLastAction("Canvas cleared");
+      clearCanvas();
+      setSelectedId(null);
+      setLastAction("Board cleared");
     }
   };
 
@@ -100,8 +129,11 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
         <CanvasStateHUD
           state={toolbarState}
           elementCount={elements.length}
+          selectedId={selectedId}
+          canUndo={canUndo}
+          canRedo={canRedo}
           lastAction={lastAction}
-          onClearCanvas={handleClearCanvas}
+          onClearCanvas={handleClear}
         />
 
         {/* Floating Interactive Canvas Toolbar */}
@@ -110,23 +142,33 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
           onToolChange={handleToolChange}
           onColorChange={handleColorChange}
           onStrokeWidthChange={handleStrokeWidthChange}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
         />
 
         {/* First-time Drawing Guidance Watermark (fades when elements exist) */}
-        {elements.length === 0 && (
+        {isHydrated && elements.length === 0 && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
-            <div className="max-w-md rounded-3xl border border-dashed border-indigo-200 bg-white/70 p-6 text-center backdrop-blur-xs shadow-sm">
+            <div className="max-w-md rounded-3xl border border-dashed border-indigo-200 bg-white/80 p-6 text-center backdrop-blur-xs shadow-sm">
               <span className="text-3xl">🎨</span>
               <h2 className="mt-2 text-base font-bold text-slate-800">
-                Konva Canvas Stage Ready
+                Interactive Whiteboard Ready
               </h2>
               <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                Click and drag anywhere to draw freehand paths with the{" "}
-                <strong className="text-indigo-600">Pen (P)</strong>, create geometric boxes with the{" "}
-                <strong className="text-indigo-600">Rectangle (R)</strong> or{" "}
-                <strong className="text-indigo-600">Circle (C)</strong> tool, or switch to the{" "}
-                <strong className="text-indigo-600">Sticky Note (S)</strong> tool.
+                Draw with the <strong className="text-indigo-600">Pen (P)</strong> or place shapes with{" "}
+                <strong className="text-indigo-600">Rectangle (R)</strong>,{" "}
+                <strong className="text-indigo-600">Circle (C)</strong>, or{" "}
+                <strong className="text-indigo-600">Sticky Note (S)</strong>.
               </p>
+              <div className="mt-3 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                <span>Undo: <kbd className="font-mono font-bold text-slate-700">Ctrl+Z</kbd></span>
+                <span>&bull;</span>
+                <span>Resize: <kbd className="font-mono font-bold text-slate-700">Select (V)</kbd></span>
+                <span>&bull;</span>
+                <span>Auto-saved locally</span>
+              </div>
             </div>
           </div>
         )}
@@ -134,8 +176,11 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
         {/* Konva 2D Canvas Stage */}
         <CanvasStage
           elements={elements}
-          onElementsChange={setElements}
+          onElementsChange={setElementsLive}
+          onCommitElements={commitElements}
           toolbarState={toolbarState}
+          selectedId={selectedId}
+          onSelectElement={setSelectedId}
         />
       </main>
     </div>
