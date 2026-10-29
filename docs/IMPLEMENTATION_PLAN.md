@@ -12,7 +12,7 @@
 | **02** | Next.js App Router Structure & UI Design System | **COMPLETED** |
 | **03** | React State & Interactive Canvas Toolbars | **COMPLETED** |
 | **04** | Single-User Canvas with React Konva | **COMPLETED** |
-| **05** | Canvas Object Manipulation, Undo/Redo & Local Storage | `NOT_STARTED` |
+| **05** | Canvas Object Manipulation, Undo/Redo & Local Storage | **COMPLETED** |
 | **06** | Backend API & PostgreSQL Database Persistence | `NOT_STARTED` |
 | **07** | Custom Real-Time WebSocket / Socket.IO Server | `NOT_STARTED` |
 | **08** | Live Multi-User Collaboration & Cursor Synchronization | `NOT_STARTED` |
@@ -97,7 +97,7 @@
 ---
 
 ### Step 5: Canvas Object Manipulation, Undo/Redo & Local Persistence
-- **Status**: `NOT_STARTED`
+- **Status**: **COMPLETED**
 - **Learning Objectives**:
   - Implement 2D transformation math: drag-and-drop, bounding-box resizing, rotation.
   - Master the Command pattern for robust Undo (`Ctrl+Z`) and Redo (`Ctrl+Y`) history stacks.

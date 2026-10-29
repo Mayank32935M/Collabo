@@ -127,4 +127,27 @@
 
 ---
 
+### Milestone 5: Canvas Object Manipulation, Undo/Redo & Local Persistence
+- **Date**: *(Fill in today's date)*
+
+#### 1. Concepts Learned
+- 
+
+#### 2. Files Changed & Why
+- 
+
+#### 3. Problems Encountered & Solutions
+- 
+
+#### 4. Commands Learned
+- 
+
+#### 5. Questions to Revisit Later
+- [ ] 
+
+#### 6. What I Can Now Explain Independently
+- 
+
+---
+
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
