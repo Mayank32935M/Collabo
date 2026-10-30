@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CanvasElement } from "@/types/canvas";
 
+export type CloudSyncStatus = "saved" | "saving" | "offline" | "error";
+
 export interface CanvasHistoryHook {
   elements: CanvasElement[];
   setElementsLive: (elements: CanvasElement[]) => void;
@@ -13,6 +15,9 @@ export interface CanvasHistoryHook {
   canUndo: boolean;
   canRedo: boolean;
   isHydrated: boolean;
+  syncStatus: CloudSyncStatus;
+  lastSavedAt: Date | null;
+  saveToCloudNow: () => Promise<void>;
 }
 
 const MAX_HISTORY_STEPS = 30;
@@ -24,49 +29,130 @@ export function useCanvasHistory(roomId: string): CanvasHistoryHook {
   const [history, setHistory] = useState<CanvasElement[][]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>("offline");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   // Ref to prevent initial mount overwrite
   const isHydratedRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Initial hydration from browser localStorage scheduled via requestAnimationFrame
+  // 1. Initial hydration: Load from localStorage instantly, then reconcile with Backend API
   useEffect(() => {
-    const frameId = requestAnimationFrame(() => {
+    let isCancelled = false;
+
+    const frameId = requestAnimationFrame(async () => {
+      let localElements: CanvasElement[] = [];
+
       try {
         const stored = localStorage.getItem(storageKey);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            setElements(parsed);
-            setHistory([parsed]);
-            setHistoryIndex(0);
-            isHydratedRef.current = true;
-            setIsHydrated(true);
-            return;
+            localElements = parsed;
           }
         }
       } catch (e) {
         console.warn("Could not load board from localStorage", e);
       }
 
-      setElements([]);
-      setHistory([[]]);
+      if (isCancelled) return;
+
+      // Mount local elements immediately for instant zero-latency render
+      setElements(localElements);
+      setHistory([localElements]);
       setHistoryIndex(0);
       isHydratedRef.current = true;
       setIsHydrated(true);
+
+      // Reconcile with PostgreSQL Backend API
+      try {
+        const res = await fetch(`/api/boards/${roomId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (isCancelled) return;
+
+        if (data.success && data.board) {
+          const serverElements: CanvasElement[] = data.board.elements || [];
+
+          if (serverElements.length > 0) {
+            setElements(serverElements);
+            setHistory([serverElements]);
+            setHistoryIndex(0);
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(serverElements));
+            } catch {
+              // ignore storage quota error
+            }
+          } else if (localElements.length > 0) {
+            // Local cache had shapes, push them to initialize the backend record
+            fetch(`/api/boards/${roomId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ elements: localElements }),
+            }).catch(() => {});
+          }
+
+          setSyncStatus(data.storageSource === "supabase" ? "saved" : "offline");
+          setLastSavedAt(new Date());
+        }
+      } catch (err) {
+        console.warn("Backend API sync failed (offline or network issue):", err);
+        if (!isCancelled) {
+          setSyncStatus("offline");
+        }
+      }
     });
 
-    return () => cancelAnimationFrame(frameId);
-  }, [storageKey]);
+    return () => {
+      isCancelled = true;
+      cancelAnimationFrame(frameId);
+    };
+  }, [roomId, storageKey]);
 
-  // 2. Persist to localStorage whenever elements state changes (after hydration)
+  // 2. Persist to localStorage and debounced API PUT whenever elements state changes
   useEffect(() => {
     if (!isHydratedRef.current) return;
+
+    // Immediately persist locally
     try {
       localStorage.setItem(storageKey, JSON.stringify(elements));
     } catch (e) {
       console.warn("Could not save board to localStorage", e);
     }
-  }, [elements, storageKey]);
+
+    // Debounce save to backend PostgreSQL API
+    setSyncStatus("saving");
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/boards/${roomId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ elements }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSyncStatus(data.storageSource === "supabase" ? "saved" : "offline");
+          setLastSavedAt(new Date());
+        } else {
+          setSyncStatus("error");
+        }
+      } catch {
+        setSyncStatus("error");
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [elements, roomId, storageKey]);
 
   // 3. Live update (during drawing/dragging) without pushing new history snapshots
   const setElementsLive = useCallback((newElements: CanvasElement[]) => {
@@ -78,11 +164,9 @@ export function useCanvasHistory(roomId: string): CanvasHistoryHook {
     (newElements: CanvasElement[]) => {
       setElements(newElements);
       setHistory((prevHistory) => {
-        // Discard any future redo steps ahead of current index
         const validHistory = prevHistory.slice(0, historyIndex + 1);
         const nextHistory = [...validHistory, newElements];
 
-        // Cap maximum history depth to save memory
         if (nextHistory.length > MAX_HISTORY_STEPS) {
           nextHistory.shift();
         }
@@ -117,7 +201,7 @@ export function useCanvasHistory(roomId: string): CanvasHistoryHook {
     }
   }, [history, historyIndex]);
 
-  // 7. Clear canvas & purge localStorage
+  // 7. Clear canvas, purge localStorage, and update backend record
   const clearCanvas = useCallback(() => {
     commitElements([]);
     try {
@@ -125,7 +209,34 @@ export function useCanvasHistory(roomId: string): CanvasHistoryHook {
     } catch (e) {
       console.warn("Could not clear localStorage", e);
     }
-  }, [commitElements, storageKey]);
+
+    fetch(`/api/boards/${roomId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ elements: [] }),
+    }).catch(() => {});
+  }, [commitElements, roomId, storageKey]);
+
+  // 8. Manual on-demand cloud sync
+  const saveToCloudNow = useCallback(async () => {
+    setSyncStatus("saving");
+    try {
+      const res = await fetch(`/api/boards/${roomId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elements }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncStatus(data.storageSource === "supabase" ? "saved" : "offline");
+        setLastSavedAt(new Date());
+      } else {
+        setSyncStatus("error");
+      }
+    } catch {
+      setSyncStatus("error");
+    }
+  }, [elements, roomId]);
 
   return {
     elements,
@@ -137,5 +248,8 @@ export function useCanvasHistory(roomId: string): CanvasHistoryHook {
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,
     isHydrated,
+    syncStatus,
+    lastSavedAt,
+    saveToCloudNow,
   };
 }
