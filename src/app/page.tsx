@@ -41,9 +41,9 @@ export default function Home() {
     { step: "Step 02", name: "Next.js UI & Board Routing", status: "Completed", current: false },
     { step: "Step 03", name: "Interactive State & Controls", status: "Completed", current: false },
     { step: "Step 04", name: "Single-User Konva Canvas", status: "Completed", current: false },
-    { step: "Step 05", name: "Object Manipulation & Persistence", status: "Completed", current: true },
-    { step: "Step 06", name: "Backend & Database Schema", status: "Up Next", current: false },
-    { step: "Step 07", name: "Real-time Socket.IO Server", status: "Planned", current: false },
+    { step: "Step 05", name: "Object Manipulation & Persistence", status: "Completed", current: false },
+    { step: "Step 06", name: "Backend API & PostgreSQL Persistence", status: "Completed", current: true },
+    { step: "Step 07", name: "Real-time Socket.IO Server", status: "Up Next", current: false },
     { step: "Step 08", name: "Live Multiplayer & Cursors", status: "Planned", current: false },
   ];
 
@@ -116,16 +116,17 @@ export default function Home() {
             <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-indigo-100 bg-white/90 p-6 text-left shadow-xl shadow-indigo-100/40">
               <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-lg text-white font-bold">
-                  05
+                  06
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    Current Milestone: Step 5 Object Manipulation, Undo/Redo &amp; Local Persistence
+                    Current Milestone: Step 6 Backend API &amp; PostgreSQL Database Persistence
                   </h2>
                   <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                    We have implemented interactive bounding-box transformation (resizing &amp; rotation handles),
-                    a multi-level Undo (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">Ctrl+Z</kbd>) and Redo (<kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">Ctrl+Y</kbd>) history stack,
-                    object deletion via <kbd className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">Delete</kbd>, double-click text editing, and automatic per-room browser storage persistence.
+                    We have architected the PostgreSQL database schema for boards and canvas elements,
+                    configured the Supabase client integration with offline fallback, implemented Next.js REST API route handlers
+                    (<code className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">GET /api/boards/[id]</code> and{" "}
+                    <code className="rounded bg-slate-100 px-1 py-0.5 border text-xs font-mono">PUT /api/boards/[id]</code>), and connected debounced cloud auto-save with live HUD feedback.
                   </p>
                 </div>
               </div>
