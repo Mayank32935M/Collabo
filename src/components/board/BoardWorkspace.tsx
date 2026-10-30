@@ -34,7 +34,7 @@ export interface BoardWorkspaceProps {
 }
 
 export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
-  // Milestone 5: History stack & LocalStorage persistence hook
+  // Milestone 5 & 6: History stack, LocalStorage & PostgreSQL backend persistence hook
   const {
     elements,
     setElementsLive,
@@ -45,6 +45,8 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
     canUndo,
     canRedo,
     isHydrated,
+    syncStatus,
+    lastSavedAt,
   } = useCanvasHistory(roomId);
 
   // Selected element ID for Transformer manipulation
@@ -133,6 +135,8 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
           canUndo={canUndo}
           canRedo={canRedo}
           lastAction={lastAction}
+          syncStatus={syncStatus}
+          lastSavedAt={lastSavedAt}
           onClearCanvas={handleClear}
         />
 
