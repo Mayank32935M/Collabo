@@ -115,18 +115,25 @@
 ---
 
 ### Step 6: Backend API & PostgreSQL Database Persistence
-- **Status**: `NOT_STARTED`
+- **Status**: **COMPLETED**
 - **Learning Objectives**:
-  - Understand relational data modeling for collaborative documents.
-  - Write SQL migrations and connect an ORM / query builder.
-  - Build Next.js REST API route handlers to save and fetch board documents.
+  - Understand relational data modeling for collaborative documents (JSONB document snapshots vs. normalized element tables).
+  - Write SQL migrations for PostgreSQL (`boards`, `profiles`, `canvas_elements`) with indexes and automatic timestamp triggers.
+  - Integrate `@supabase/supabase-js` with graceful offline in-memory fallback for zero-configuration local development.
+  - Build Next.js REST API route handlers to save and fetch board documents (`GET /api/boards/[id]`, `PUT /api/boards/[id]`, `POST /api/boards`).
+  - Implement debounced cloud auto-save and Stale-While-Revalidate hydration in `useCanvasHistory`.
 - **Prerequisites**: Step 5.
 - **Deliverables**:
-  - PostgreSQL schema for `boards`, `users`, and `canvas_elements`.
-  - API endpoints: `GET /api/boards/[id]`, `POST /api/boards`, `PUT /api/boards/[id]`.
+  - PostgreSQL schema migration: `supabase/migrations/20261030000001_create_boards_table.sql` and `docs/schema.sql`.
+  - Supabase client integration with offline store: `src/lib/supabase.ts`.
+  - TypeScript database types: `src/types/database.ts`.
+  - Next.js 16 API Route Handlers: `src/app/api/boards/[id]/route.ts` and `src/app/api/boards/route.ts`.
+  - Upgraded `useCanvasHistory` hook with debounced cloud persistence and sync status tracking.
+  - Live HUD status indicators showing DB layer and cloud sync feedback.
 - **Acceptance Criteria**:
-  - Board states serialize to JSON and persist reliably to PostgreSQL.
-- **Practical Test**: Save a board via API, wipe browser storage, and reload from backend.
+  - Board states serialize to JSON and persist reliably to PostgreSQL / backend API.
+  - All unit checks (`lint`, `tsc`, `build`) pass cleanly without errors.
+- **Practical Test**: Create shapes on a board, verify network PUT requests save elements to `/api/boards/[id]`, wipe browser `localStorage`, and refresh to confirm the state is restored from the backend.
 
 ---
 
