@@ -13,7 +13,7 @@
 | **03** | React State & Interactive Canvas Toolbars | **COMPLETED** |
 | **04** | Single-User Canvas with React Konva | **COMPLETED** |
 | **05** | Canvas Object Manipulation, Undo/Redo & Local Storage | **COMPLETED** |
-| **06** | Backend API & PostgreSQL Database Persistence | `NOT_STARTED` |
+| **06** | Backend API & PostgreSQL Database Persistence | **COMPLETED** |
 | **07** | Custom Real-Time WebSocket / Socket.IO Server | `NOT_STARTED` |
 | **08** | Live Multi-User Collaboration & Cursor Synchronization | `NOT_STARTED` |
 | **09** | User Authentication, Room Access & Sharing Permissions | `NOT_STARTED` |
@@ -203,3 +203,26 @@
   - All tests pass in CI.
   - Public multi-user collaboration works flawlessly on production domains.
 - **Practical Test**: Have two separate physical devices join the production URL and collaborate simultaneously.
+
+---
+
+# SECTION 2: INSTITUTIONAL PLATFORM REDESIGN ROADMAP (M0 – M10)
+
+Following the completion of the baseline single-user whiteboard (Steps 1–6), COLLABO is expanding into a full institutional collaborative platform across 11 master milestones:
+
+| Milestone | Title | Focus Area | Status |
+|---|---|---|---|
+| **M0** | Repository Re-Audit & Preservation | Read-only inspection, baseline tagging (`v1-whiteboard-baseline`), branch setup | **COMPLETED** |
+| **M0.5** | Monorepo Strategy & Architecture Decisions | ADRs authoring, root `AGENTS.md`, monorepo workspace migration plan | **IN PROGRESS** |
+| **M1** | Revised Requirements & Architecture Specs | System overview, database schema, real-time control, media SFU specs | `PLANNED` |
+| **M1.5** | Developer Knowledge & Antigravity Onboarding | Reusable contributor onboarding, concept guides, development setup | `PLANNED` |
+| **M2** | Application Modularization & Shared Foundations | Physical `apps/` and `packages/` workspace structuring, shared types | `PLANNED` |
+| **M3** | Identity & Institutional Workspace Management | Multi-tenant auth, institution admin, departments, course enrollments | `PLANNED` |
+| **M4** | Classroom Management & Scheduling | Scheduled sessions, classroom models, attendance tracking, room access | `PLANNED` |
+| **M5** | Real-Time Control Plane | Dedicated Node.js + Socket.IO server, speaking queue, lecture vs interactive modes | `PLANNED` |
+| **M6** | Voice Infrastructure & SFU Integration | LiveKit WebRTC SFU, 250+ participant audio routing, mic permissions | `PLANNED` |
+| **M7** | Screen Sharing & Classroom Interaction | Video media track presentation, chat, live polls, Q&A | `PLANNED` |
+| **M8** | Collaborative Whiteboard Transformation | Shared multiplayer canvas, object ownership, layers, image/PDF support | `PLANNED` |
+| **M9** | COLLABO Intelligence & AI Assistance | Mind-map generation, lecture summaries, board-aware Q&A, flashcards | `PLANNED` |
+| **M10** | Production Readiness, Security & Load Testing | E2E test suites, load testing 250+ concurrent users, security hardening | `PLANNED` |
+
