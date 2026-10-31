@@ -96,3 +96,4 @@ collabo/
 2. Workspace configuration file: `pnpm-workspace.yaml`.
 3. Package naming convention: `@collabo/<package-name>` (e.g. `@collabo/whiteboard`, `@collabo/shared`).
 4. Incremental transition: Move existing `src/` code into `apps/web` and `packages/whiteboard` without modifying core canvas rendering behavior.
+

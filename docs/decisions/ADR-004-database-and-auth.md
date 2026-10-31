@@ -53,3 +53,4 @@ We retain **Supabase / PostgreSQL** as the core database engine:
 4. **Migration Strategy:**
    - All migrations are tracked chronologically in `supabase/migrations/`.
    - Never run `DROP TABLE` or destructive modifications on production or baseline migrations.
+

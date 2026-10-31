@@ -91,3 +91,4 @@ We will build a dedicated, stateful Node.js application using **TypeScript** and
   * *Mitigation:* Container host platforms like Railway or Render offer low-cost or free-tier persistent containers ideal for development and prototyping.
 * **Horizontal Scaling Across Multiple Servers:** If traffic exceeds a single Node.js instance, multiple Socket.IO servers require a Redis adapter (`@socket.io/redis-adapter`) for cross-node pub/sub.
   * *Mitigation:* A single well-tuned Node.js instance can handle thousands of concurrent WebSocket connections. Redis clustering will only be introduced when benchmarking warrants it.
+

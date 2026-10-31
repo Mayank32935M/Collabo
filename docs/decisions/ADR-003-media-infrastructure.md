@@ -83,3 +83,4 @@ Media routing is strictly separated from classroom coordination:
 3. Teacher approves speaker: `apps/realtime` emits `classroom:grant_mic` to the student.
 4. The student's client receives permission and enables their microphone track via LiveKit.
 5. In Lecture Mode, unpermitted participants remain in receive-only audio mode.
+
