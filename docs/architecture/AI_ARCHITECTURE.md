@@ -113,3 +113,4 @@ export const AIMindMapResponseSchema = z.array(AIShapeSchema);
 
 * **No Foundation Model Training:** Student voice transcripts, whiteboard drawings, and questions are processed with zero-retention / non-training API contracts.
 * **Tenant Data Isolation:** AI requests include an institutional identifier; no cross-institutional context leakage is permitted.
+

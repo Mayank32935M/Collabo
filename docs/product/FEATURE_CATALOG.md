@@ -84,3 +84,4 @@
 | **Create Personal Boards** | ✅ Full | ✅ Full | ✅ Full | ✅ Full | ✅ Full | ✅ Full |
 | **View Attendance Logs** | ✅ Full | ✅ Dept Only | ✅ Own Courses | ✅ Own Courses | ❌ Own History | ❌ None |
 | **Trigger AI Summaries / Quizzes** | ❌ None | ❌ None | ✅ Full | ✅ Full | ✅ Full | ✅ Full |
+

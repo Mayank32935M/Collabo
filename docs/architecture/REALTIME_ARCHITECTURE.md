@@ -185,3 +185,4 @@ While a single Node.js Socket.IO instance easily handles 10,000+ concurrent conn
        ├── Instance B (apps/realtime) ───┼──> [Redis Pub/Sub Cluster]
        └── Instance C (apps/realtime) ───┘
 ```
+

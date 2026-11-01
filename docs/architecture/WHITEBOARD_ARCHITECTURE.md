@@ -118,3 +118,4 @@ sequenceDiagram
 ### Evolution from Full Array Overwrites to Operational Diffs:
 * **Current Baseline:** 800ms debounced HTTP PUT sending `{ elements: CanvasElement[] }`. This last-write-wins approach works for single users but causes collisions when multiple users edit concurrently.
 * **Milestone M8 Target:** Operation-based synchronization (`op:create`, `op:update`, `op:delete`) over Socket.IO, with CRDT (Yjs) support to ensure conflict-free convergence across all classroom participants.
+

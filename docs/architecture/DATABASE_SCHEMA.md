@@ -290,3 +290,4 @@ PostgreSQL Row-Level Security is strictly enforced:
 1. **Course Isolation:** A student enrolled in Course A cannot view attendance logs, sessions, or private boards of Course B.
 2. **Attendance Privacy:** Students can only read their own `session_participants` rows; instructors can read all attendee rows for courses they instruct.
 3. **Open Boards Backward Compatibility:** Boards with no associated `session_boards` link remain accessible via public link sharing.
+

@@ -157,3 +157,4 @@ flowchart TD
    - **Lecture Recap:** Reads a structured 3-paragraph summary with key takeaways and timestamps.
    - **Board Mind-Map:** The student clicks *"Generate Mind-Map from Lecture"*. The AI parses the lecture concepts and suggests new nodes. A translucent preview appears on the whiteboard; the student clicks **"Apply to Board"**.
    - **Flashcard Generation:** The student clicks *"Create Revision Quiz"*. The AI generates 10 practice questions directly testing the architecture diagrams created during class.
+

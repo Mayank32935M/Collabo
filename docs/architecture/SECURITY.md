@@ -127,3 +127,4 @@ CREATE POLICY "Members can view enrolled courses"
 1. **HTML5 Canvas Sandboxing:** React Konva draws vector shapes and text to a 2D bitmap buffer on an HTML5 `<canvas>`. This naturally isolates canvas drawing from the DOM, eliminating classical DOM-based XSS inside the whiteboard itself.
 2. **Chat & Text Inputs:** All user-supplied text rendered outside the canvas (e.g. chat messages, board titles in headers, tooltips) is sanitized and rendered as escaped React strings (`{message.body}`) without `dangerouslySetInnerHTML`.
 3. **Image & File Uploads:** Uploaded images are strictly validated by MIME type (JPEG, PNG, SVG) and max file size (10 MB). SVGs are sanitized using `DOMPurify` to eliminate embedded `<script>` or event attributes before mounting onto the canvas.
+

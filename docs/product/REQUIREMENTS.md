@@ -57,3 +57,4 @@
 ### Accessibility (a11y)
 * **NFR-A11Y-01 (Keyboard Navigation):** All primary controls (tools, mute, raise hand, leave room, undo/redo) must be operable via standard keyboard shortcuts.
 * **NFR-A11Y-02 (Color Contrast):** All UI components, badges, and status indicators must conform to WCAG 2.1 AA color contrast standards (minimum 4.5:1 for normal text).
+

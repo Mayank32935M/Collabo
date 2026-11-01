@@ -189,3 +189,4 @@ COLLABO supports a **hybrid identity model**:
 * ❌ **No Raw WebSocket Audio:** Voice streaming will not be built on top of WebSocket TCP packets.
 * ❌ **No Premature Microservices:** All backend services will live in the modular monorepo, keeping deployment simple for a solo developer.
 * ❌ **No Silent Destructive Migrations:** Database migrations will strictly remain additive and backward-compatible.
+
