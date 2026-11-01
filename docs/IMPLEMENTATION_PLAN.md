@@ -213,9 +213,9 @@ Following the completion of the baseline single-user whiteboard (Steps 1–6), C
 | Milestone | Title | Focus Area | Status |
 |---|---|---|---|
 | **M0** | Repository Re-Audit & Preservation | Read-only inspection, baseline tagging (`v1-whiteboard-baseline`), branch setup | **COMPLETED** |
-| **M0.5** | Monorepo Strategy & Architecture Decisions | ADRs authoring, root `AGENTS.md`, monorepo workspace migration plan | **IN PROGRESS** |
-| **M1** | Revised Requirements & Architecture Specs | System overview, database schema, real-time control, media SFU specs | `PLANNED` |
-| **M1.5** | Developer Knowledge & Antigravity Onboarding | Reusable contributor onboarding, concept guides, development setup | `PLANNED` |
+| **M0.5** | Monorepo Strategy & Architecture Decisions | ADRs authoring, root `AGENTS.md`, monorepo workspace migration plan | **COMPLETED** |
+| **M1** | Revised Requirements & Architecture Specs | System overview, database schema, real-time control, media SFU specs | **COMPLETED** |
+| **M1.5** | Developer Knowledge & Antigravity Onboarding | Reusable contributor onboarding, concept guides, development setup | **IN PROGRESS** |
 | **M2** | Application Modularization & Shared Foundations | Physical `apps/` and `packages/` workspace structuring, shared types | `PLANNED` |
 | **M3** | Identity & Institutional Workspace Management | Multi-tenant auth, institution admin, departments, course enrollments | `PLANNED` |
 | **M4** | Classroom Management & Scheduling | Scheduled sessions, classroom models, attendance tracking, room access | `PLANNED` |
