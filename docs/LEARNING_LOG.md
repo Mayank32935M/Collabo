@@ -185,6 +185,53 @@
 #### 6. What I Can Now Explain Independently
 - 
 
+### Milestone M2: Application Modularization & Shared Foundations
+- **Status**: Completed
+- **Date**: 2026-11-03
+
+#### 1. Core Concepts Learned
+- **Package Modularization & Separation of Concerns**: Extracting domain infrastructure (`@collabo/database`) and canvas primitives (`@collabo/whiteboard`) away from Next.js presentation components (`@collabo/web`). This allows the database adapters and canvas math to be tested in isolation, shared across apps (like background workers or realtime servers), and versioned independently.
+- **The Storage Adapter Pattern**: Using the Gang of Four Adapter/Strategy pattern to decouple application route handlers from concrete persistence implementations. By defining `BoardStorageAdapter`, route handlers no longer care whether records live in Supabase PostgreSQL or an in-memory development fallback.
+- **Declarative 2D Canvas Coordinate Binding**: Understanding how React Konva translates declarative state to the HTML5 canvas scenegraph. In freehand pen strokes, points are defined relative to the node origin `(x, y)`. Omitting `x` and `y` props on `<Line>` caused Konva to reset node offsets to `(0, 0)` upon re-render, creating the notorious "snap-back" bug. Binding `x={el.x ?? 0}` and `y={el.y ?? 0}` preserves dragged positions.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/canvas.ts`: Added optional `x` and `y` coordinates to `PenElement` to support canvas dragging and transformations.
+- `packages/database/package.json` & `tsconfig.json`: Initialized the `@collabo/database` workspace package.
+- `packages/database/src/client.ts`: Supabase client initialization, environment variable validation, and connection detection.
+- `packages/database/src/memory-store.ts`: In-memory development fallback store for zero-config offline runs.
+- `packages/database/src/adapter.ts`: Defined `BoardStorageAdapter` interface along with `SupabaseBoardAdapter`, `MemoryBoardAdapter`, and the resilience-focused `HybridBoardAdapter`.
+- `packages/database/src/index.ts`: Public API exports for `@collabo/database`.
+- `packages/whiteboard/package.json` & `tsconfig.json`: Initialized the `@collabo/whiteboard` workspace package.
+- `packages/whiteboard/src/elements.ts`: Factory functions (`createPenElement`, `createRectElement`, etc.) and element cloning utilities.
+- `packages/whiteboard/src/history.ts`: Pure `HistoryManager` class implementing the Command pattern for undo/redo state stacks independent of React hooks.
+- `packages/whiteboard/src/index.ts`: Public API exports for `@collabo/whiteboard`.
+- `apps/web/package.json` & `tsconfig.json`: Linked `@collabo/database` and `@collabo/whiteboard` as workspace dependencies.
+- `apps/web/src/types/canvas.ts` & `database.ts`: Re-exported from `@collabo/shared` for seamless backward compatibility.
+- `apps/web/src/components/board/CanvasStage.tsx`: Fixed the Pen element drag bug by binding `x`, `y`, and `rotation` to `<Line>` and adding pen transform support.
+- `apps/web/src/app/api/boards/[id]/route.ts` & `route.ts`: Refactored to delegate persistence to `getBoardStorageAdapter()`, eliminating ~120 lines of duplicate Supabase queries.
+- `apps/web/src/lib/supabase.ts`: Re-exported from `@collabo/database` for backwards compatibility.
+- `apps/web/src/components/board/*` & `hooks/useCanvasHistory.ts`: Converted imports from local types to `@collabo/shared`.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M2 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **Pen Snap-back on Canvas Re-render**:
+  - *Problem*: When a user dragged a freehand pen drawing in Select mode, releasing the mouse caused the stroke to immediately jump back to its origin.
+  - *Root Cause*: `handleDragEnd` saved `x` and `y` into state, but `<Line>` only accepted `points` and did not pass `x` or `y` attributes to Konva. On the next render, Konva used default `(0, 0)` offsets.
+  - *Solution*: Added `x?: number; y?: number;` to `PenElement` and passed `x={el.x ?? 0}` and `y={el.y ?? 0}` to `<Line>`.
+- **Database Logic Duplication in API Routes**:
+  - *Problem*: Both `/api/boards` and `/api/boards/[id]` repeated 60+ lines of identical fallback logic for checking Supabase vs. MemoryStore.
+  - *Solution*: Abstracted persistence into `BoardStorageAdapter` with a `HybridBoardAdapter` that handles database errors and fallback transparently.
+
+#### 4. Commands Learned
+- `pnpm -r typecheck`: Typechecks all monorepo workspace packages recursively in topological order.
+- `pnpm -r lint`: Lints all workspace projects.
+- `pnpm --filter <pkg> exec <cmd>`: Executes a binary installed within a specific workspace package.
+
+#### 5. What I Can Now Explain Independently
+- How to extract shared libraries within a pnpm monorepo using `workspace:*` dependencies.
+- How the Storage Adapter Pattern decouples business logic from concrete databases.
+- How Konva scenegraph transforms work and why node coordinates must bind to component props.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
