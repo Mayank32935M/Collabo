@@ -1,0 +1,18 @@
+{
+  "name": "@collabo/whiteboard",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@collabo/database": "workspace:*",
+    "@collabo/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
+
