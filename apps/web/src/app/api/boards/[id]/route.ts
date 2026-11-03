@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured, memoryStore } from "@/lib/supabase";
+import { getBoardStorageAdapter } from "@collabo/database";
 import {
   BoardApiResponse,
-  BoardRecord,
   SaveBoardPayload,
-} from "@/types/database";
+} from "@collabo/shared";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,8 +11,7 @@ interface RouteContext {
 
 /**
  * GET /api/boards/[id]
- * Retrieves a board document by its room_id.
- * If the board doesn't exist yet, returns a clean default board template.
+ * Retrieves a board document by its room_id using the injected storage adapter.
  */
 export async function GET(
   _request: Request,
@@ -33,62 +31,13 @@ export async function GET(
       );
     }
 
-    // 1. Fetch from Supabase PostgreSQL if configured
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from("boards")
-        .select("*")
-        .eq("room_id", roomId)
-        .maybeSingle();
-
-      if (error) {
-        console.error("[Supabase Error] GET /api/boards/[id]:", error);
-        return NextResponse.json(
-          { success: false, error: error.message, storageSource: "supabase" },
-          { status: 500 }
-        );
-      }
-
-      if (data) {
-        return NextResponse.json({
-          success: true,
-          board: data as BoardRecord,
-          storageSource: "supabase",
-        });
-      }
-
-      // If board record not found in DB, return clean default template
-      const defaultBoard: BoardRecord = {
-        id: "",
-        room_id: roomId,
-        title: `${roomId} Board`,
-        elements: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      return NextResponse.json({
-        success: true,
-        board: defaultBoard,
-        storageSource: "supabase",
-      });
-    }
-
-    // 2. In-memory development fallback (when Supabase credentials are not provided)
-    const existing = memoryStore.getBoard(roomId);
-    const board: BoardRecord = existing || {
-      id: "local-dev-id",
-      room_id: roomId,
-      title: `${roomId} Board`,
-      elements: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const adapter = getBoardStorageAdapter();
+    const result = await adapter.getBoard(roomId);
 
     return NextResponse.json({
       success: true,
-      board,
-      storageSource: "memory-fallback",
+      board: result.board,
+      storageSource: result.storageSource,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
@@ -102,7 +51,7 @@ export async function GET(
 
 /**
  * PUT /api/boards/[id]
- * Upserts a board's elements and metadata in PostgreSQL (or in-memory fallback).
+ * Upserts a board's elements and metadata using the injected storage adapter.
  */
 export async function PUT(
   request: Request,
@@ -150,44 +99,13 @@ export async function PUT(
     const title = payload.title || `${roomId} Board`;
     const elements = payload.elements;
 
-    // 1. Persist to Supabase PostgreSQL if configured
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
-        .from("boards")
-        .upsert(
-          {
-            room_id: roomId,
-            title,
-            elements,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "room_id" }
-        )
-        .select()
-        .single();
-
-      if (error) {
-        console.error("[Supabase Error] PUT /api/boards/[id]:", error);
-        return NextResponse.json(
-          { success: false, error: error.message, storageSource: "supabase" },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        board: data as BoardRecord,
-        storageSource: "supabase",
-      });
-    }
-
-    // 2. In-memory development fallback
-    const board = memoryStore.upsertBoard(roomId, title, elements);
+    const adapter = getBoardStorageAdapter();
+    const result = await adapter.saveBoard(roomId, title, elements);
 
     return NextResponse.json({
       success: true,
-      board,
-      storageSource: "memory-fallback",
+      board: result.board,
+      storageSource: result.storageSource,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
@@ -198,4 +116,3 @@ export async function PUT(
     );
   }
 }
-
