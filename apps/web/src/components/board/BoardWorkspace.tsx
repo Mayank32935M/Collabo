@@ -11,7 +11,7 @@ import {
   CanvasTool,
   StrokeWidth,
   ToolbarState,
-} from "@/types/canvas";
+} from "@collabo/shared";
 
 // Dynamically import CanvasStage with ssr: false so Konva never attempts to mount on the server
 const CanvasStage = dynamic(

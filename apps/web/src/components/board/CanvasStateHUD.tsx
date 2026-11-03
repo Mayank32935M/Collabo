@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CANVAS_TOOLS, ToolbarState } from "@/types/canvas";
+import { CANVAS_TOOLS, ToolbarState } from "@collabo/shared";
 import { CloudSyncStatus } from "@/hooks/useCanvasHistory";
 
 export interface CanvasStateHUDProps {
