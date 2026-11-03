@@ -10,7 +10,7 @@ import {
   PenElement,
   RectElement,
   CircleElement,
-} from "@/types/canvas";
+} from "@collabo/shared";
 
 export interface CanvasStageProps {
   elements: CanvasElement[];
@@ -320,6 +320,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     const updated = elements.map((el) => {
       if (el.id !== id) return el;
 
+      if (el.type === "pen") {
+        return {
+          ...el,
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          rotation,
+        };
+      }
+
       if (el.type === "rectangle") {
         return {
           ...el,
@@ -404,6 +413,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   <Line
                     key={el.id}
                     id={el.id}
+                    x={el.x ?? 0}
+                    y={el.y ?? 0}
+                    rotation={el.rotation ?? 0}
                     points={el.points}
                     stroke={el.color}
                     strokeWidth={el.strokeWidth}
