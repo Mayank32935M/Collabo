@@ -117,6 +117,8 @@ export interface BaseElement {
 export interface PenElement extends BaseElement {
   type: "pen";
   points: number[];
+  x?: number;
+  y?: number;
 }
 
 export interface RectElement extends BaseElement {

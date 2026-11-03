@@ -36,9 +36,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@collabo/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@collabo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@collabo/whiteboard':
+        specifier: workspace:*
+        version: link:../../packages/whiteboard
       '@supabase/supabase-js':
         specifier: ^2.118.0
         version: 2.118.0
@@ -83,7 +89,33 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/database:
+    dependencies:
+      '@collabo/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@supabase/supabase-js':
+        specifier: ^2.118.0
+        version: 2.118.0
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/whiteboard:
+    dependencies:
+      '@collabo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@collabo/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5

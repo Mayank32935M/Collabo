@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { CanvasElement } from "@/types/canvas";
+import { CanvasElement } from "@collabo/shared";
 
 export type CloudSyncStatus = "saved" | "saving" | "offline" | "error";
 

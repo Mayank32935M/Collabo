@@ -8,7 +8,7 @@ import {
   CanvasTool,
   StrokeWidth,
   ToolbarState,
-} from "@/types/canvas";
+} from "@collabo/shared";
 
 export interface CanvasToolbarProps {
   state: ToolbarState;
