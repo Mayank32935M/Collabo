@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@collabo/auth": "workspace:*",
     "@collabo/database": "workspace:*",
     "@collabo/shared": "workspace:*",
     "@collabo/whiteboard": "workspace:*",
