@@ -36,6 +36,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@collabo/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@collabo/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -85,6 +88,16 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/auth:
+    dependencies:
+      '@collabo/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
       typescript:
         specifier: ^5
         version: 5.9.3
