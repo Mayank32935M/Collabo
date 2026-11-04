@@ -232,6 +232,52 @@
 - How the Storage Adapter Pattern decouples business logic from concrete databases.
 - How Konva scenegraph transforms work and why node coordinates must bind to component props.
 
+### Milestone M3: Identity & Institutional Workspace Management
+- **Status**: Completed
+- **Date**: 2026-11-04
+
+#### 1. Core Concepts Learned
+- **Multi-Tenancy & Tenant Discriminators**: How educational platforms enforce data isolation using a shared PostgreSQL schema with `institution_id` tenant keys. Combined with PostgreSQL Row-Level Security (RLS), this ensures users cannot view data belonging to other institutions.
+- **Role-Based Access Control (RBAC) Decomposition**: Decoupling permissions (`course:read`, `course:create`, `room:host`, `room:speak`) from roles (`admin`, `instructor`, `student`, `guest`). Rather than peppering brittle `if (user.role === 'instructor')` checks across UI components, an authorization helper `hasPermission(user, permission, enrollmentRole)` allows dynamic permission resolution (e.g., student elevated to TA in a specific course).
+- **Hybrid Data Repository Pattern**: Extending the repository pattern across institutions, departments, courses, and enrollments with an in-memory fallback store (`MemoryInstitutionalRepository`) containing rich mock seeds. This allows the application to be tested end-to-end without configuring cloud credentials or database connections.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/institution.ts`: Defined TypeScript domain models for `Institution`, `Department`, `Course`, `CourseEnrollment`, `UserProfile`, `SystemRole`, and `EnrollmentRole`.
+- `packages/shared/src/index.ts`: Re-exported institutional types.
+- `supabase/migrations/20261104000001_create_institutional_schema.sql`: Additive SQL migration creating `institutions`, `departments`, `courses`, `course_enrollments`, and upgrading `profiles` with `system_role`.
+- `packages/auth/package.json` & `tsconfig.json`: Initialized the standalone `@collabo/auth` workspace package.
+- `packages/auth/src/types.ts`: Defined `Permission`, `AuthUser`, and `AuthSession` interfaces.
+- `packages/auth/src/permissions.ts`: Authored the `SYSTEM_ROLE_PERMISSIONS` and `ENROLLMENT_ROLE_PERMISSIONS` matrices alongside `hasPermission`, `canHostRoom`, and `canManageCourse`.
+- `packages/auth/src/mock.ts`: Created developer personas (`MOCK_ADMIN`, `MOCK_INSTRUCTOR`, `MOCK_STUDENT`, `MOCK_GUEST`) and offline session provider.
+- `packages/auth/src/index.ts`: Public exports for `@collabo/auth`.
+- `packages/database/src/repositories/institutional-repository.ts`: Defined `InstitutionalRepository` interface.
+- `packages/database/src/repositories/memory-institutional-repo.ts`: In-memory development store seeded with Apex Institute of Technology, CS department, and CS-101 course.
+- `packages/database/src/repositories/supabase-institutional-repo.ts`: Supabase PostgreSQL repository implementation.
+- `packages/database/src/repositories/hybrid-institutional-repo.ts`: Resilient hybrid repository falling back to memory store on network issues.
+- `packages/database/src/index.ts`: Public exports for institutional repositories.
+- `apps/web/package.json` & `tsconfig.json`: Linked `@collabo/auth` as workspace dependency.
+- `apps/web/src/app/api/institutions/route.ts`: Added endpoint returning institution catalog and departments.
+- `apps/web/src/app/api/courses/route.ts`: Added endpoint for course discovery and creation with RBAC enforcement.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M3 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **Symlink Creation on Windows for New Package**:
+  - *Problem*: Creating `packages/auth` and running `pnpm --filter @collabo/auth typecheck` failed with `ERR_PNPM_PACKAGE_MANAGER_SYMLINK_FAILED: Access is denied. (os error 5)`.
+  - *Root Cause*: On Windows, creating workspace symlinks in `node_modules` requires administrator or elevated permissions.
+  - *Solution*: Executed `pnpm install` with bypass sandbox mode, linking `@collabo/auth` cleanly into the workspace.
+- **ESLint `no-explicit-any` in Course API Route**:
+  - *Problem*: `let body: any;` in `apps/web/src/app/api/courses/route.ts` violated ESLint rules.
+  - *Solution*: Replaced `any` with a strongly-typed `Partial<{ department_id: string; ... }>` payload interface.
+
+#### 4. Commands Learned
+- `pnpm -r typecheck`: Verified all 7 monorepo workspace packages.
+- `pnpm -r lint`: Verified zero lint warnings/errors across the entire monorepo.
+
+#### 5. What I Can Now Explain Independently
+- How shared-schema multi-tenancy works with tenant foreign keys and Row-Level Security.
+- How to design an RBAC permission matrix that separates global system roles from course-level roles.
+- How to write decoupled repository interfaces that support both cloud databases and in-memory mock fixtures.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*

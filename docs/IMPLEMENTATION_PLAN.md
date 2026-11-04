@@ -217,7 +217,7 @@ Following the completion of the baseline single-user whiteboard (Steps 1–6), C
 | **M1** | Revised Requirements & Architecture Specs | System overview, database schema, real-time control, media SFU specs | **COMPLETED** |
 | **M1.5** | Developer Knowledge & Antigravity Onboarding | Reusable contributor onboarding, concept guides, development setup | **COMPLETED** |
 | **M2** | Application Modularization & Shared Foundations | Physical `apps/` and `packages/` workspace structuring, shared types | **COMPLETED** |
-| **M3** | Identity & Institutional Workspace Management | Multi-tenant auth, institution admin, departments, course enrollments | `PLANNED` |
+| **M3** | Identity & Institutional Workspace Management | Multi-tenant auth, institution admin, departments, course enrollments | **COMPLETED** |
 | **M4** | Classroom Management & Scheduling | Scheduled sessions, classroom models, attendance tracking, room access | `PLANNED` |
 | **M5** | Real-Time Control Plane | Dedicated Node.js + Socket.IO server, speaking queue, lecture vs interactive modes | `PLANNED` |
 | **M6** | Voice Infrastructure & SFU Integration | LiveKit WebRTC SFU, 250+ participant audio routing, mic permissions | `PLANNED` |
