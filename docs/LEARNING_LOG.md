@@ -278,6 +278,44 @@
 - How to design an RBAC permission matrix that separates global system roles from course-level roles.
 - How to write decoupled repository interfaces that support both cloud databases and in-memory mock fixtures.
 
+### Milestone M4: Classroom Management & Scheduling
+- **Status**: Completed
+- **Date**: 2026-11-05
+
+#### 1. Core Concepts Learned
+- **Classroom Templates vs. Session Instances**: Architectural separation between the persistent container (`classrooms` with course association, default lecture/interactive mode, and waiting room policies) and temporal meeting events (`classroom_sessions` with scheduled/live/ended status and timestamps).
+- **Automated Participation Logging**: Tracking student attendance through connection lifecycle hooks. Computing exact `duration_seconds` upon leave events or session termination to remove manual roll-call overhead while providing verifiable institutional records.
+- **Session-Board Junction Pattern**: Using `session_boards` to bind collaborative whiteboards to live sessions dynamically. This decouples canvas persistence from classroom scheduling, allowing instructors to bring in existing boards or spawn new session boards seamlessly.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/classroom.ts`: Defined TypeScript domain models for `Classroom`, `ClassroomSession`, `SessionParticipant`, `SessionBoard`, `ClassroomMode`, `SessionStatus`, and enriched view contracts.
+- `packages/shared/src/index.ts`: Re-exported classroom models.
+- `supabase/migrations/20261105000001_create_classrooms_schema.sql`: Additive SQL migration creating `classrooms`, `classroom_sessions`, `session_participants`, and `session_boards` with foreign keys, indexes, and RLS policies.
+- `packages/database/src/repositories/classroom-repository.ts`: Defined `ClassroomRepository` interface.
+- `packages/database/src/repositories/memory-classroom-repo.ts`: In-memory development store pre-seeded with CS-101's virtual classroom and scheduled session.
+- `packages/database/src/repositories/supabase-classroom-repo.ts`: Production PostgreSQL implementation with relational joins.
+- `packages/database/src/repositories/hybrid-classroom-repo.ts`: Resilient hybrid fallback proxy.
+- `packages/database/src/index.ts`: Public exports for classroom repositories.
+- `apps/web/src/app/api/classrooms/route.ts`: Endpoint for provisioning virtual classrooms with RBAC validation.
+- `apps/web/src/app/api/sessions/route.ts`: Endpoint for scheduling sessions.
+- `apps/web/src/app/api/sessions/[id]/route.ts`: Endpoint for session retrieval and lifecycle transitions (`live`, `ended`).
+- `apps/web/src/app/api/sessions/[id]/attendance/route.ts`: Endpoint for attendance roster inspection and join/leave event logging.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M4 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **ESLint `no-explicit-any` on Session Creation Response**:
+  - *Problem*: `full || (created as any)` in `apps/web/src/app/api/sessions/route.ts` violated TypeScript strict lint rules.
+  - *Solution*: Replaced with `full || undefined`, properly satisfying `SessionWithDetails | undefined`.
+
+#### 4. Commands Learned
+- `pnpm -r typecheck`: Verified all 7 monorepo packages.
+- `pnpm -r lint`: Verified zero lint warnings/errors across the monorepo.
+
+#### 5. What I Can Now Explain Independently
+- The difference between room templates and live session entities in educational software architecture.
+- How automated attendance logging calculates participant durations reliably across network disconnects.
+- How junction tables decouple shared media documents (whiteboards) from live scheduling meetings.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
