@@ -5,3 +5,7 @@ export * from "./repositories/institutional-repository";
 export * from "./repositories/memory-institutional-repo";
 export * from "./repositories/supabase-institutional-repo";
 export * from "./repositories/hybrid-institutional-repo";
+export * from "./repositories/classroom-repository";
+export * from "./repositories/memory-classroom-repo";
+export * from "./repositories/supabase-classroom-repo";
+export * from "./repositories/hybrid-classroom-repo";
