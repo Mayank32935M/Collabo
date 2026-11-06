@@ -316,6 +316,43 @@
 - How automated attendance logging calculates participant durations reliably across network disconnects.
 - How junction tables decouple shared media documents (whiteboards) from live scheduling meetings.
 
+### Milestone M5: Real-Time Control Plane
+- **Status**: Completed
+- **Date**: 2026-11-06
+
+#### 1. Core Concepts Learned
+- **Separation of Control Plane from Media Plane**: Why enterprise collaborative systems decouple signaling/presence (Socket.IO over TCP) from audio/screen-share streaming (WebRTC SFU over UDP). This keeps the control plane lightweight, resilient, and capable of coordinating hundreds of concurrent lecture rooms without media-induced jitter or lag.
+- **In-Memory Concurrency & State Machines**: Using Node.js single-threaded event loop to execute synchronized room mutations (speaking queues, mode transitions, mic grants, mute-all) in memory with sub-5ms latency, avoiding database read/write bottlenecks during high-frequency classroom events.
+- **Volatile vs. Guaranteed Real-Time Delivery**: Understanding when to use `socket.volatile.emit()` for ephemeral, non-critical high-frequency coordinates (cursor updates) so network congestion drops stale packets without backlogging client buffers, while using standard emissions for structural events (mic grants, mode changes).
+- **Ephemeral Disconnect Buffer (Grace Period)**: Why live classrooms require a 30-second disconnect grace window. If a student's Wi-Fi drops momentarily, reconnecting preserves their place in the speaking queue and active classroom role without disrupting the lecture.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/control-plane.ts`: Authored comprehensive, strongly-typed contracts for client-to-server and server-to-client Socket.IO payloads (`ClientJoinRoomPayload`, `ServerModeChangedPayload`, `ServerQueueUpdatedPayload`, `ActivePollState`, etc.).
+- `packages/shared/src/index.ts`: Re-exported control plane event schemas.
+- `apps/realtime/package.json`: Linked `@collabo/auth` and `@collabo/database` workspace packages and added `socket.io-client`.
+- `apps/realtime/tsconfig.json`: Adjusted `rootDir` and added workspace path mappings to allow cross-package compilation.
+- `apps/realtime/src/state/room-state-manager.ts`: Built the centralized in-memory `RoomStateManager` handling FIFO speaking queues, mode toggling, mic permissions, live polls, waiting rooms, and disconnect timers.
+- `apps/realtime/src/handlers/presence-handler.ts`: Handled room join, leave, waiting room queueing, and asynchronous attendance sync.
+- `apps/realtime/src/handlers/classroom-handler.ts`: Implemented host moderation actions (`classroom:set_mode`, `classroom:raise_hand`, `classroom:grant_mic`, `classroom:revoke_mic`, `classroom:mute_all`).
+- `apps/realtime/src/handlers/interaction-handler.ts`: Implemented in-class chat, live comprehension polls, and volatile cursor streaming.
+- `apps/realtime/src/index.ts`: Refactored server entrypoint with modular handler assembly and programmatic server creation factory.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M5 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **TypeScript TS6059 `rootDir` Constraint**:
+  - *Problem*: `pnpm --filter @collabo/realtime typecheck` failed with `File '.../packages/shared/src/index.ts' is not under 'rootDir' 'apps/realtime/src'`.
+  - *Root Cause*: Specifying `"rootDir": "./src"` prevented TypeScript from resolving imported source files from other workspace packages.
+  - *Solution*: Removed `"rootDir": "./src"` from `apps/realtime/tsconfig.json`, allowing multi-package path resolution.
+
+#### 4. Commands Learned
+- `pnpm --filter @collabo/realtime dev`: Runs the standalone Socket.IO server with hot-reload via `tsx watch`.
+- `pnpm --filter @collabo/realtime build`: Compiles the server to `dist/` via `tsc`.
+
+#### 5. What I Can Now Explain Independently
+- How a WebSocket control plane enforces role-based speaking permissions in real time.
+- How volatile socket broadcasting prevents network buffer congestion during multiplayer cursor moves.
+- How an in-memory FIFO queue coordinates large classroom hand-raising without database thrashing.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
