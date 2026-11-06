@@ -1,61 +1,54 @@
 import http from "node:http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import { registerPresenceHandlers } from "./handlers/presence-handler";
+import { registerClassroomHandlers } from "./handlers/classroom-handler";
+import { registerInteractionHandlers } from "./handlers/interaction-handler";
 
 dotenv.config();
 
-const PORT = Number(process.env.PORT) || 4000;
+export const PORT = Number(process.env.PORT) || 4000;
 
-const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "healthy", service: "collabo-realtime", timestamp: new Date().toISOString() }));
-    return;
-  }
-  res.writeHead(404);
-  res.end();
-});
-
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || "*",
-    methods: ["GET", "POST"],
-  },
-});
-
-io.on("connection", (socket) => {
-  console.log(`[Socket Connected] ID: ${socket.id}`);
-
-  socket.on("room:join", ({ roomId, user }: { roomId: string; user?: { id: string; name: string } }) => {
-    socket.join(roomId);
-    console.log(`[Room Join] User ${user?.name || socket.id} joined room #${roomId}`);
-    socket.to(roomId).emit("room:user_joined", {
-      socketId: socket.id,
-      user,
-      timestamp: new Date().toISOString(),
-    });
+export function createRealtimeServer(): { server: http.Server; io: Server } {
+  const server = http.createServer((req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          status: "healthy",
+          service: "collabo-realtime",
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    }
+    res.writeHead(404);
+    res.end();
   });
 
-  socket.on("room:leave", ({ roomId }: { roomId: string }) => {
-    socket.leave(roomId);
-    socket.to(roomId).emit("room:user_left", { socketId: socket.id });
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.CORS_ORIGIN || "*",
+      methods: ["GET", "POST"],
+    },
   });
 
-  socket.on("cursor:move", ({ roomId, x, y, user }: { roomId: string; x: number; y: number; user?: { id: string; name: string; color: string } }) => {
-    socket.to(roomId).emit("cursor:update", {
-      socketId: socket.id,
-      x,
-      y,
-      user,
-    });
+  io.on("connection", (socket) => {
+    console.log(`[Socket Connected] ID: ${socket.id}`);
+
+    // Register modular feature handlers
+    registerPresenceHandlers(io, socket);
+    registerClassroomHandlers(io, socket);
+    registerInteractionHandlers(io, socket);
   });
 
-  socket.on("disconnect", () => {
-    console.log(`[Socket Disconnected] ID: ${socket.id}`);
+  return { server, io };
+}
+
+// Start server if executed directly as entrypoint
+if (process.env.NODE_ENV !== "test" && process.env.START_SERVER !== "false") {
+  const { server } = createRealtimeServer();
+  server.listen(PORT, () => {
+    console.log(`🚀 COLLABO Realtime Control Plane listening on port ${PORT}`);
   });
-});
-
-server.listen(PORT, () => {
-  console.log(`🚀 COLLABO Realtime Control Plane listening on port ${PORT}`);
-});
-
+}
