@@ -219,7 +219,7 @@ Following the completion of the baseline single-user whiteboard (Steps 1–6), C
 | **M2** | Application Modularization & Shared Foundations | Physical `apps/` and `packages/` workspace structuring, shared types | **COMPLETED** |
 | **M3** | Identity & Institutional Workspace Management | Multi-tenant auth, institution admin, departments, course enrollments | **COMPLETED** |
 | **M4** | Classroom Management & Scheduling | Scheduled sessions, classroom models, attendance tracking, room access | **COMPLETED** |
-| **M5** | Real-Time Control Plane | Dedicated Node.js + Socket.IO server, speaking queue, lecture vs interactive modes | `PLANNED` |
+| **M5** | Real-Time Control Plane | Dedicated Node.js + Socket.IO server, speaking queue, lecture vs interactive modes | **COMPLETED** |
 | **M6** | Voice Infrastructure & SFU Integration | LiveKit WebRTC SFU, 250+ participant audio routing, mic permissions | `PLANNED` |
 | **M7** | Screen Sharing & Classroom Interaction | Video media track presentation, chat, live polls, Q&A | `PLANNED` |
 | **M8** | Collaborative Whiteboard Transformation | Shared multiplayer canvas, object ownership, layers, image/PDF support | `PLANNED` |
