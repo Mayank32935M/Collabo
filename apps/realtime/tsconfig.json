@@ -4,11 +4,12 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "paths": {
+      "@collabo/auth": ["../../packages/auth/src/index.ts"],
+      "@collabo/database": ["../../packages/database/src/index.ts"],
       "@collabo/shared": ["../../packages/shared/src/index.ts"]
     }
   },
