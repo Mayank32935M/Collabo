@@ -54,6 +54,9 @@ importers:
       '@collabo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@collabo/voice':
+        specifier: workspace:*
+        version: link:../../packages/voice
       '@collabo/whiteboard':
         specifier: workspace:*
         version: link:../../packages/whiteboard
@@ -125,6 +128,22 @@ importers:
         version: 5.9.3
 
   packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/voice:
+    dependencies:
+      '@collabo/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@collabo/database':
+        specifier: workspace:*
+        version: link:../database
+      '@collabo/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5
