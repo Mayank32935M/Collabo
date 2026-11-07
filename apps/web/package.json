@@ -14,6 +14,7 @@
     "@collabo/auth": "workspace:*",
     "@collabo/database": "workspace:*",
     "@collabo/shared": "workspace:*",
+    "@collabo/voice": "workspace:*",
     "@collabo/whiteboard": "workspace:*",
     "@supabase/supabase-js": "^2.118.0",
     "konva": "^10.9.0",

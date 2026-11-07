@@ -23,6 +23,7 @@
       "@collabo/auth": ["../../packages/auth/src/index.ts"],
       "@collabo/database": ["../../packages/database/src/index.ts"],
       "@collabo/shared": ["../../packages/shared/src/index.ts"],
+      "@collabo/voice": ["../../packages/voice/src/index.ts"],
       "@collabo/whiteboard": ["../../packages/whiteboard/src/index.ts"]
     }
   },

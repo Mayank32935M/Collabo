@@ -353,6 +353,44 @@
 - How volatile socket broadcasting prevents network buffer congestion during multiplayer cursor moves.
 - How an in-memory FIFO queue coordinates large classroom hand-raising without database thrashing.
 
+### Milestone M6: Voice Infrastructure & SFU Integration
+- **Status**: Completed
+- **Date**: 2026-11-07
+
+#### 1. Core Concepts Learned
+- **P2P Mesh vs. Selective Forwarding Unit (SFU) Topology**: Why $O(N^2)$ mesh connections collapse on client devices beyond 4–6 peers (at 250 participants, a mesh requires 62,250 bidirectional peer connections, saturating CPU and uplink bandwidth). In contrast, an SFU acts as an intelligent media router ($O(N)$ connections): each broadcaster uploads exactly one track to the server, and the SFU selectively multiplexes downstream UDP audio packets to subscribers.
+- **Asymmetric Bandwidth in Large-Scale Educational Delivery**: In *Lecture Mode*, only the instructor (or an elevated student speaker) publishes audio. In a 250-person hall, there is only 1 uplink media stream across the entire room, while 249 participants are pure listeners (0 upstream bandwidth, ~32 kbps downstream Opus audio). In *Interactive Mode*, publishing permissions are dynamically extended to all peers.
+- **Stateless Media Authorization via Cryptographic JWTs**: How WebRTC SFUs enforce track publishing permissions without polling a database on every audio packet. The application server signs an HMAC-SHA256 JWT containing explicit `VideoGrant` claims (`roomJoin`, `canPublish`, `canSubscribe`, `canPublishSources: ["microphone"]`). The SFU inspects and verifies the signature at the media edge during the WebRTC ICE/DTLS handshake.
+- **Zero-Config Development via Mock Service Fallback**: Why robust distributed architectures include offline mock implementations. Developers and automated integration tests can run full classroom joining and permission workflows without requiring a deployed LiveKit server or external cloud credentials.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/voice.ts`: Authored shared domain models for WebRTC SFU grants, track sources, connection states, and token exchange requests (`VideoGrant`, `VoiceRoomToken`, `VoiceParticipantState`, `VoiceTrackSource`).
+- `packages/shared/src/index.ts`: Re-exported voice domain types.
+- `packages/voice/package.json` & `packages/voice/tsconfig.json`: Created dedicated `@collabo/voice` workspace package.
+- `packages/voice/src/types.ts`: Defined `VoiceTokenService` contracts, `GenerateTokenOptions`, and LiveKit JWT claims interface.
+- `packages/voice/src/permissions.ts`: Implemented `createLiveKitGrant()` resolver mapping classroom mode, role (host, co-host, speaker, attendee), and speaking elevation to LiveKit `VideoGrant` permissions.
+- `packages/voice/src/mock.ts`: Built `MockVoiceTokenService` producing compliant mock JWTs and simulated WebSocket endpoints for offline development.
+- `packages/voice/src/token-service.ts`: Implemented production `LiveKitVoiceTokenService` using standard `node:crypto` HMAC-SHA256 signing, along with environment-sensing `getVoiceTokenService()` factory and `generateVoiceToken()` helper.
+- `packages/voice/src/index.ts`: Exported barrel for `@collabo/voice`.
+- `apps/web/package.json` & `apps/web/tsconfig.json`: Linked `@collabo/voice` workspace dependency into Next.js.
+- `apps/web/src/app/api/sessions/[id]/voice-token/route.ts`: Built Next.js App Router POST endpoint that verifies user session, retrieves classroom delivery mode, and mints signed LiveKit tokens.
+- `docs/IMPLEMENTATION_PLAN.md`: Updated Milestone M6 status to COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **Auth User Property Typo in Voice Route**:
+  - *Problem*: `src/app/api/sessions/[id]/voice-token/route.ts` attempted to read `authSession.profile.display_name`, triggering TypeScript error TS2339.
+  - *Root Cause*: `@collabo/auth` models user identity via `authSession.user.full_name`.
+  - *Solution*: Corrected to `authSession.user.full_name || authSession.user.email`.
+
+#### 4. Commands Learned
+- `pnpm --filter @collabo/voice typecheck`: Typechecks the isolated voice package.
+- `pnpm -r typecheck`: Typechecks all 8 packages in the monorepo workspace.
+
+#### 5. What I Can Now Explain Independently
+- Why an SFU architecture is mandatory for classrooms with 250+ concurrent participants.
+- How LiveKit uses JWT VideoGrants to prevent unauthorized microphone transmission at the WebRTC media boundary.
+- How to construct and sign standard HMAC-SHA256 JWT tokens using Node's native `crypto` module without heavy 3rd-party dependencies.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
