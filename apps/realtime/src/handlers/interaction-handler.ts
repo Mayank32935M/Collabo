@@ -1,12 +1,21 @@
 import { Server, Socket } from "socket.io";
 import {
+  ClientAnswerQuestionPayload,
+  ClientAskQuestionPayload,
   ClientChatMessagePayload,
   ClientCursorMovePayload,
   ClientLaunchPollPayload,
+  ClientScreenShareStartPayload,
+  ClientScreenShareStopPayload,
+  ClientUpvoteQuestionPayload,
   ClientVotePollPayload,
   ServerChatMessagePayload,
   ServerCursorUpdatePayload,
   ServerPollUpdatedPayload,
+  ServerQuestionAddedPayload,
+  ServerQuestionUpdatedPayload,
+  ServerScreenShareStartedPayload,
+  ServerScreenShareStoppedPayload,
 } from "@collabo/shared";
 import { roomStateManager } from "../state/room-state-manager";
 
@@ -100,6 +109,92 @@ export function registerInteractionHandlers(io: Server, socket: Socket): void {
 
     // Volatile emit drops congested packets without buffer lag
     socket.to(roomId).volatile.emit("cursor:update", cursorPayload);
+  });
+
+  // 4. Screen Sharing
+  socket.on("screen:start", (payload: ClientScreenShareStartPayload) => {
+    const { roomId, streamId, hasAudio } = payload;
+    const screenShare = roomStateManager.startScreenShare(roomId, socket.id, {
+      streamId,
+      hasAudio,
+    });
+
+    if (!screenShare) {
+      socket.emit("error", {
+        message: "Forbidden: You do not have permission to broadcast screen share.",
+      });
+      return;
+    }
+
+    const startPayload: ServerScreenShareStartedPayload = { screenShare };
+    io.to(roomId).emit("screen:started", startPayload);
+  });
+
+  socket.on("screen:stop", (payload: ClientScreenShareStopPayload) => {
+    const { roomId } = payload;
+    const stopped = roomStateManager.stopScreenShare(roomId, socket.id);
+
+    if (stopped) {
+      const stopPayload: ServerScreenShareStoppedPayload = {
+        socketId: stopped.socketId,
+        profileId: stopped.profileId,
+      };
+      io.to(roomId).emit("screen:stopped", stopPayload);
+    }
+  });
+
+  // 5. Q&A Threads & Upvoting
+  socket.on("qa:ask", (payload: ClientAskQuestionPayload) => {
+    const { roomId, question: questionText } = payload;
+    const question = roomStateManager.addQuestion(roomId, socket.id, questionText);
+
+    if (!question) {
+      socket.emit("error", { message: "Invalid question submission." });
+      return;
+    }
+
+    const addedPayload: ServerQuestionAddedPayload = { question };
+    io.to(roomId).emit("qa:question_added", addedPayload);
+  });
+
+  socket.on("qa:upvote", (payload: ClientUpvoteQuestionPayload) => {
+    const { roomId, questionId } = payload;
+    const room = roomStateManager.getRoom(roomId);
+    if (!room) return;
+
+    const participant = room.participants.get(socket.id);
+    if (!participant) return;
+
+    const question = roomStateManager.upvoteQuestion(
+      roomId,
+      participant.profileId,
+      questionId
+    );
+
+    if (question) {
+      const updatedPayload: ServerQuestionUpdatedPayload = { question };
+      io.to(roomId).emit("qa:question_updated", updatedPayload);
+    }
+  });
+
+  socket.on("qa:answer", (payload: ClientAnswerQuestionPayload) => {
+    const { roomId, questionId, isAnswered } = payload;
+    const question = roomStateManager.markQuestionAnswered(
+      roomId,
+      socket.id,
+      questionId,
+      isAnswered
+    );
+
+    if (!question) {
+      socket.emit("error", {
+        message: "Forbidden: Only hosts or authors can update answer status.",
+      });
+      return;
+    }
+
+    const updatedPayload: ServerQuestionUpdatedPayload = { question };
+    io.to(roomId).emit("qa:question_updated", updatedPayload);
   });
 }
 
