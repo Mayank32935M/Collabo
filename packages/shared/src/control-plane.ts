@@ -32,6 +32,28 @@ export interface WaitingParticipant {
   requestedAt: string;
 }
 
+export interface ActiveScreenShareState {
+  socketId: string;
+  profileId: string;
+  name: string;
+  streamId?: string;
+  hasAudio?: boolean;
+  startedAt: string;
+}
+
+export interface QAQuestion {
+  id: string;
+  roomId: string;
+  authorProfileId: string;
+  authorName: string;
+  authorRole: ParticipantRole;
+  question: string;
+  upvotes: string[]; // profileIds who upvoted
+  upvoteCount: number;
+  isAnswered: boolean;
+  createdAt: string;
+}
+
 export interface RoomStateSnapshot {
   roomId: string;
   sessionId?: string;
@@ -42,6 +64,8 @@ export interface RoomStateSnapshot {
   speakingQueue: string[]; // Ordered list of socketIds
   activeSpeakerSocketIds: string[];
   activePoll?: ActivePollState | null;
+  activeScreenShare?: ActiveScreenShareState | null;
+  questions?: QAQuestion[];
   requireWaitingRoom: boolean;
 }
 
@@ -133,6 +157,32 @@ export interface ClientCursorMovePayload {
   y: number;
 }
 
+export interface ClientScreenShareStartPayload {
+  roomId: string;
+  streamId?: string;
+  hasAudio?: boolean;
+}
+
+export interface ClientScreenShareStopPayload {
+  roomId: string;
+}
+
+export interface ClientAskQuestionPayload {
+  roomId: string;
+  question: string;
+}
+
+export interface ClientUpvoteQuestionPayload {
+  roomId: string;
+  questionId: string;
+}
+
+export interface ClientAnswerQuestionPayload {
+  roomId: string;
+  questionId: string;
+  isAnswered: boolean;
+}
+
 // -------------------------------------------------------------
 // 4. Server -> Client Event Payloads
 // -------------------------------------------------------------
@@ -193,5 +243,22 @@ export interface ServerCursorUpdatePayload {
 
 export interface ServerWaitingRoomNoticePayload {
   applicant: WaitingParticipant;
+}
+
+export interface ServerScreenShareStartedPayload {
+  screenShare: ActiveScreenShareState;
+}
+
+export interface ServerScreenShareStoppedPayload {
+  socketId: string;
+  profileId: string;
+}
+
+export interface ServerQuestionAddedPayload {
+  question: QAQuestion;
+}
+
+export interface ServerQuestionUpdatedPayload {
+  question: QAQuestion;
 }
 

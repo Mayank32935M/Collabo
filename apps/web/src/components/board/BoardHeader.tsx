@@ -10,11 +10,21 @@ import { Avatar } from "@/components/ui/Avatar";
 export interface BoardHeaderProps {
   roomId: string;
   initialTitle?: string;
+  isSharingScreen?: boolean;
+  canShareScreen?: boolean;
+  onToggleScreenShare?: () => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const BoardHeader: React.FC<BoardHeaderProps> = ({
   roomId,
   initialTitle = "Untitled Board",
+  isSharingScreen = false,
+  canShareScreen = true,
+  onToggleScreenShare,
+  isSidebarOpen = false,
+  onToggleSidebar,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -101,6 +111,34 @@ export const BoardHeader: React.FC<BoardHeaderProps> = ({
             +
           </div>
         </div>
+
+        {/* Screen Share Control */}
+        {onToggleScreenShare && (
+          <Button
+            variant={isSharingScreen ? "danger" : "outline"}
+            size="sm"
+            onClick={onToggleScreenShare}
+            disabled={!canShareScreen && !isSharingScreen}
+            className="hidden sm:inline-flex"
+            title={isSharingScreen ? "Stop screen share" : "Broadcast screen to class"}
+          >
+            <span>🖥️</span>
+            <span>{isSharingScreen ? "Stop Screen" : "Share Screen"}</span>
+          </Button>
+        )}
+
+        {/* Classroom Interaction Sidebar Toggle */}
+        {onToggleSidebar && (
+          <Button
+            variant={isSidebarOpen ? "primary" : "outline"}
+            size="sm"
+            onClick={onToggleSidebar}
+            title="Toggle Chat, Live Polls & Q&A"
+          >
+            <span>💬</span>
+            <span className="hidden sm:inline">Classroom</span>
+          </Button>
+        )}
 
         {/* Share Button with Live Clipboard Copy */}
         <Button

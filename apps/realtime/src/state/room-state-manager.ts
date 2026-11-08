@@ -1,7 +1,9 @@
 import {
   ActivePollState,
+  ActiveScreenShareState,
   ClassroomMode,
   ControlParticipant,
+  QAQuestion,
   RoomStateSnapshot,
   WaitingParticipant,
 } from "@collabo/shared";
@@ -17,6 +19,8 @@ export interface RoomControlState {
   speakingQueue: string[]; // FIFO list of socketIds with raised hand
   activeSpeakerSocketIds: Set<string>;
   activePoll: ActivePollState | null;
+  activeScreenShare: ActiveScreenShareState | null;
+  questions: Map<string, QAQuestion>; // questionId -> QAQuestion
   requireWaitingRoom: boolean;
   disconnectTimers: Map<string, NodeJS.Timeout>; // profileId -> timer
 }
@@ -44,6 +48,8 @@ export class RoomStateManager {
         speakingQueue: [],
         activeSpeakerSocketIds: new Set<string>(),
         activePoll: null,
+        activeScreenShare: null,
+        questions: new Map<string, QAQuestion>(),
         requireWaitingRoom: options?.requireWaitingRoom ?? false,
         disconnectTimers: new Map<string, NodeJS.Timeout>(),
       };
@@ -60,6 +66,12 @@ export class RoomStateManager {
     const room = this.rooms.get(roomId);
     if (!room) return null;
 
+    const sortedQuestions = Array.from(room.questions.values()).sort(
+      (a, b) =>
+        b.upvoteCount - a.upvoteCount ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
     return {
       roomId: room.roomId,
       sessionId: room.sessionId,
@@ -70,6 +82,8 @@ export class RoomStateManager {
       speakingQueue: [...room.speakingQueue],
       activeSpeakerSocketIds: Array.from(room.activeSpeakerSocketIds),
       activePoll: room.activePoll ? { ...room.activePoll } : null,
+      activeScreenShare: room.activeScreenShare ? { ...room.activeScreenShare } : null,
+      questions: sortedQuestions,
       requireWaitingRoom: room.requireWaitingRoom,
     };
   }
@@ -114,6 +128,10 @@ export class RoomStateManager {
 
     if (room.hostSocketId === socketId) {
       room.hostSocketId = undefined;
+    }
+
+    if (room.activeScreenShare?.socketId === socketId) {
+      room.activeScreenShare = null;
     }
 
     if (room.participants.size === 0) {
@@ -287,6 +305,163 @@ export class RoomStateManager {
     room.activePoll.isActive = false;
     const poll = { ...room.activePoll };
     return poll;
+  }
+
+  // -------------------------------------------------------------
+  // Screen Share Management
+  // -------------------------------------------------------------
+
+  startScreenShare(
+    roomId: string,
+    socketId: string,
+    options?: { streamId?: string; hasAudio?: boolean }
+  ): ActiveScreenShareState | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const participant = room.participants.get(socketId);
+    if (!participant) return null;
+
+    const isHost = socketId === room.hostSocketId;
+    const isCoHost = room.coHostSocketIds.has(socketId);
+    const isSpeaker =
+      participant.role === "speaker" || room.activeSpeakerSocketIds.has(socketId);
+    const isInteractive = room.mode === "interactive";
+
+    if (!isHost && !isCoHost && !isSpeaker && !isInteractive) {
+      return null;
+    }
+
+    const screenShare: ActiveScreenShareState = {
+      socketId,
+      profileId: participant.profileId,
+      name: participant.name,
+      streamId: options?.streamId,
+      hasAudio: options?.hasAudio ?? false,
+      startedAt: new Date().toISOString(),
+    };
+
+    room.activeScreenShare = screenShare;
+    return screenShare;
+  }
+
+  stopScreenShare(
+    roomId: string,
+    socketId: string
+  ): ActiveScreenShareState | null {
+    const room = this.rooms.get(roomId);
+    if (!room || !room.activeScreenShare) return null;
+
+    const isOwner = room.activeScreenShare.socketId === socketId;
+    const isHost = socketId === room.hostSocketId;
+    const isCoHost = room.coHostSocketIds.has(socketId);
+
+    if (!isOwner && !isHost && !isCoHost) {
+      return null;
+    }
+
+    const stopped = { ...room.activeScreenShare };
+    room.activeScreenShare = null;
+    return stopped;
+  }
+
+  getActiveScreenShare(roomId: string): ActiveScreenShareState | null {
+    const room = this.rooms.get(roomId);
+    return room?.activeScreenShare ? { ...room.activeScreenShare } : null;
+  }
+
+  // -------------------------------------------------------------
+  // Q&A Thread Management
+  // -------------------------------------------------------------
+
+  addQuestion(
+    roomId: string,
+    socketId: string,
+    questionText: string
+  ): QAQuestion | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const participant = room.participants.get(socketId);
+    if (!participant) return null;
+
+    const trimmed = questionText?.trim();
+    if (!trimmed || trimmed.length === 0) return null;
+
+    const question: QAQuestion = {
+      id: `q-${Math.random().toString(36).slice(2, 9)}`,
+      roomId,
+      authorProfileId: participant.profileId,
+      authorName: participant.name,
+      authorRole: participant.role,
+      question: trimmed,
+      upvotes: [],
+      upvoteCount: 0,
+      isAnswered: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    room.questions.set(question.id, question);
+    return question;
+  }
+
+  upvoteQuestion(
+    roomId: string,
+    profileId: string,
+    questionId: string
+  ): QAQuestion | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const question = room.questions.get(questionId);
+    if (!question) return null;
+
+    const hasUpvoted = question.upvotes.includes(profileId);
+    if (hasUpvoted) {
+      question.upvotes = question.upvotes.filter((id) => id !== profileId);
+    } else {
+      question.upvotes.push(profileId);
+    }
+    question.upvoteCount = question.upvotes.length;
+
+    return { ...question };
+  }
+
+  markQuestionAnswered(
+    roomId: string,
+    socketId: string,
+    questionId: string,
+    isAnswered: boolean
+  ): QAQuestion | null {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+
+    const participant = room.participants.get(socketId);
+    if (!participant) return null;
+
+    const isHost = socketId === room.hostSocketId;
+    const isCoHost = room.coHostSocketIds.has(socketId);
+
+    const question = room.questions.get(questionId);
+    if (!question) return null;
+
+    if (!isHost && !isCoHost && participant.profileId !== question.authorProfileId) {
+      return null;
+    }
+
+    question.isAnswered = isAnswered;
+    return { ...question };
+  }
+
+  getQuestions(roomId: string): QAQuestion[] {
+    const room = this.rooms.get(roomId);
+    if (!room) return [];
+
+    return Array.from(room.questions.values()).sort(
+      (a, b) =>
+        b.upvoteCount - a.upvoteCount ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }
 }
 

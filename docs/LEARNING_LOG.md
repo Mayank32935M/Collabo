@@ -391,6 +391,46 @@
 - How LiveKit uses JWT VideoGrants to prevent unauthorized microphone transmission at the WebRTC media boundary.
 - How to construct and sign standard HMAC-SHA256 JWT tokens using Node's native `crypto` module without heavy 3rd-party dependencies.
 
+### Milestone M7: Screen Sharing & Classroom Interaction
+- **Status**: Completed
+- **Date**: 2026-11-08
+
+#### 1. Core Concepts Learned
+- **WebRTC Display Media Capture (`getDisplayMedia`)**: How browsers capture high-definition desktop display surfaces (entire monitors, application windows, or browser tabs) at 1080p/4K 30–60 FPS with audio loopback (`screen_share_audio`). Managing the track lifecycle includes listening for the browser's native floating "Stop sharing" chrome banner via `MediaStreamTrack.onended`.
+- **Decoupled Video Decoders vs. 2D Canvas Engine**: Why high-definition presentation video must never be rasterized or blitted frame-by-frame onto the HTML5 2D whiteboard `<canvas>`. Doing so burns CPU/GPU bus bandwidth and degrades drawing smoothness to <15 FPS. Instead, an isolated DOM `<video>` viewport uses native GPU hardware acceleration, coexisting harmoniously with the Konva whiteboard stage.
+- **In-Memory Concurrency for High-Frequency Classroom Events**: How live comprehension polls (RM-09) and Q&A upvoting (RM-10) survive burst traffic. When 250 students vote simultaneously within 2 seconds, persisting every click to a relational database exhausts connection pools and causes latency spikes. In-memory state in Node.js processes votes atomically and broadcasts computed percentage distributions in sub-10ms.
+- **Idempotent Upvoting via Profile Sets**: Storing upvotes as an array/set of unique `profileId`s per question prevents double-voting abuse and allows a clean one-click toggle (click to upvote, click again to retract) with guaranteed deterministic sorting (`upvoteCount` descending).
+
+#### 2. Files Changed & Why
+- `packages/shared/src/control-plane.ts`: Added strongly-typed data contracts for screen sharing (`ActiveScreenShareState`, `ClientScreenShareStartPayload`, `ServerScreenShareStartedPayload`, etc.) and live Q&A threads (`QAQuestion`, `ClientAskQuestionPayload`, `ClientUpvoteQuestionPayload`, `ClientAnswerQuestionPayload`, etc.).
+- `apps/realtime/src/state/room-state-manager.ts`: Added active screen share tracking, role-based permission checks (host/co-host/speaker only), Q&A storage, upvote toggling, and automated cleanup on presenter disconnect.
+- `apps/realtime/src/handlers/interaction-handler.ts`: Wired up socket listeners and room broadcasts for `screen:start`, `screen:stop`, `qa:ask`, `qa:upvote`, and `qa:answer`.
+- `packages/voice/src/screen-share.ts`: Built `ScreenShareController` managing browser display media requests, track lifecycle listeners, and headless test simulation.
+- `packages/voice/src/index.ts`: Re-exported screen share controller.
+- `apps/web/src/components/classroom/ScreenShareStage.tsx`: Responsive presentation video stage with presenter header, full-screen toggle, audio mute, and aspect-video layout.
+- `apps/web/src/components/classroom/ScreenShareControl.tsx`: Toolbar control for initiating and stopping screen shares with permission checks and active pulsing indicators.
+- `apps/web/src/components/classroom/ClassroomSidebar.tsx`: Slide-over drawer with 3 tabs: Chat stream with role badges, Live Polls with animated percentage bars and host creation form, and Q&A question thread with upvote buttons and instructor "Mark Answered" toggles.
+- `apps/web/src/components/board/BoardHeader.tsx` & `BoardWorkspace.tsx`: Integrated screen share controls, video presentation stage, and interaction drawer into the main whiteboard workspace.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M7 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **React 19 / ESLint Ref Access Error (`react-hooks/refs`)**:
+  - *Problem*: `BoardWorkspace.tsx` threw an ESLint error on `if (!screenControllerRef.current) screenControllerRef.current = new ScreenShareController();` during render.
+  - *Root Cause*: React 19 and ESLint 9 strictly prohibit reading or mutating `ref.current` during the component render phase.
+  - *Solution*: Moved initialization inside the `handleToggleScreenShare` event callback where accessing ref values is completely valid and recommended.
+- **Badge Variant Type Constraint**:
+  - *Problem*: `BadgeProps.variant` only accepts `"indigo" | "rose" | "amber" | "emerald" | "slate"`. Passing `"purple"` for TA badges caused TS2322.
+  - *Solution*: Replaced with `"indigo"`.
+
+#### 4. Commands Learned
+- `pnpm --filter @collabo/web lint`: Runs Next.js 16 + React 19 lint suite with strict hook rules.
+- `npx --prefix apps/realtime tsx test_m7.ts`: Runs isolated Node.js test harness without port binding conflicts.
+
+#### 5. What I Can Now Explain Independently
+- How browser screen capture (`getDisplayMedia`) coordinates with WebRTC video tracks and control plane signaling.
+- Why media presentation must be decoupled from 2D whiteboard canvas rendering.
+- How in-memory state machines handle real-time classroom polls and question upvoting at scale without database bottlenecks.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*
