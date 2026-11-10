@@ -1,6 +1,7 @@
 import {
   CanvasElement,
   CircleElement,
+  ImageElement,
   PenElement,
   RectElement,
   StickyElement,
@@ -153,6 +154,40 @@ export function createTextElement(options: {
 }
 
 /**
+ * Factory for creating a new Image element.
+ */
+export function createImageElement(options: {
+  id?: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  src: string;
+  aspectRatio?: number;
+  color?: string;
+  strokeWidth?: StrokeWidth;
+  rotation?: number;
+  authorId?: string;
+  authorName?: string;
+}): ImageElement {
+  return {
+    id: options.id || generateElementId("img"),
+    type: "image",
+    x: options.x,
+    y: options.y,
+    width: options.width ?? 320,
+    height: options.height ?? 240,
+    src: options.src,
+    aspectRatio: options.aspectRatio,
+    color: options.color || "#6366f1",
+    strokeWidth: options.strokeWidth || 1,
+    rotation: options.rotation ?? 0,
+    authorId: options.authorId,
+    authorName: options.authorName,
+  };
+}
+
+/**
  * Deep-clones an array of canvas elements.
  */
 export function cloneElements(elements: CanvasElement[]): CanvasElement[] {
@@ -162,5 +197,69 @@ export function cloneElements(elements: CanvasElement[]): CanvasElement[] {
     }
     return { ...el };
   });
+}
+
+/**
+ * Moves an element up one level in the rendering order (higher z-index).
+ */
+export function bringForward(
+  elements: CanvasElement[],
+  targetId: string
+): CanvasElement[] {
+  const index = elements.findIndex((el) => el.id === targetId);
+  if (index === -1 || index === elements.length - 1) return elements;
+
+  const result = [...elements];
+  const temp = result[index];
+  result[index] = result[index + 1];
+  result[index + 1] = temp;
+  return result;
+}
+
+/**
+ * Moves an element down one level in the rendering order (lower z-index).
+ */
+export function sendBackward(
+  elements: CanvasElement[],
+  targetId: string
+): CanvasElement[] {
+  const index = elements.findIndex((el) => el.id === targetId);
+  if (index === -1 || index === 0) return elements;
+
+  const result = [...elements];
+  const temp = result[index];
+  result[index] = result[index - 1];
+  result[index - 1] = temp;
+  return result;
+}
+
+/**
+ * Moves an element to the very top of the rendering stack.
+ */
+export function bringToFront(
+  elements: CanvasElement[],
+  targetId: string
+): CanvasElement[] {
+  const index = elements.findIndex((el) => el.id === targetId);
+  if (index === -1 || index === elements.length - 1) return elements;
+
+  const target = elements[index];
+  const filtered = elements.filter((el) => el.id !== targetId);
+  return [...filtered, target];
+}
+
+/**
+ * Moves an element to the very bottom of the rendering stack.
+ */
+export function sendToBack(
+  elements: CanvasElement[],
+  targetId: string
+): CanvasElement[] {
+  const index = elements.findIndex((el) => el.id === targetId);
+  if (index === -1 || index === 0) return elements;
+
+  const target = elements[index];
+  const filtered = elements.filter((el) => el.id !== targetId);
+  return [target, ...filtered];
 }
 

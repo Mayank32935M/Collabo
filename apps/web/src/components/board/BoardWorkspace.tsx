@@ -5,10 +5,12 @@ import dynamic from "next/dynamic";
 import { BoardHeader } from "@/components/board/BoardHeader";
 import { CanvasToolbar } from "@/components/board/CanvasToolbar";
 import { CanvasStateHUD } from "@/components/board/CanvasStateHUD";
+import { CanvasZoomControls } from "@/components/board/CanvasZoomControls";
 import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { ScreenShareStage } from "@/components/classroom/ScreenShareStage";
 import { ClassroomSidebar } from "@/components/classroom/ClassroomSidebar";
 import { ScreenShareController } from "@collabo/voice";
+import { clampScale } from "@collabo/whiteboard";
 import {
   ActivePollState,
   ActiveScreenShareState,
@@ -18,6 +20,7 @@ import {
   ServerChatMessagePayload,
   StrokeWidth,
   ToolbarState,
+  ViewportTransform,
 } from "@collabo/shared";
 
 // Dynamically import CanvasStage with ssr: false so Konva never attempts to mount on the server
@@ -58,6 +61,19 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
 
   // Selected element ID for Transformer manipulation
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Camera viewport state (infinite canvas pan & zoom)
+  const [camera, setCamera] = useState<ViewportTransform>({
+    x: 0,
+    y: 0,
+    scale: 1,
+  });
+
+  const handleZoomIn = () =>
+    setCamera((c) => ({ ...c, scale: clampScale(c.scale * 1.2, 0.1, 5.0) }));
+  const handleZoomOut = () =>
+    setCamera((c) => ({ ...c, scale: clampScale(c.scale / 1.2, 0.1, 5.0) }));
+  const handleResetZoom = () => setCamera({ x: 0, y: 0, scale: 1 });
 
   // Toolbar & drawing attributes state
   const [toolbarState, setToolbarState] = useState<ToolbarState>({
@@ -356,6 +372,15 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
           </div>
         )}
 
+        {/* Floating Canvas Zoom Controls */}
+        <CanvasZoomControls
+          scale={camera.scale}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetZoom={handleResetZoom}
+          className="absolute bottom-6 right-6 z-20"
+        />
+
         {/* Konva 2D Canvas Stage */}
         <CanvasStage
           elements={elements}
@@ -364,6 +389,8 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
           toolbarState={toolbarState}
           selectedId={selectedId}
           onSelectElement={setSelectedId}
+          camera={camera}
+          onCameraChange={setCamera}
         />
 
         {/* In-Classroom Interaction Sidebar (Chat, Live Polls & Q&A) */}

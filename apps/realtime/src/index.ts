@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { registerPresenceHandlers } from "./handlers/presence-handler";
 import { registerClassroomHandlers } from "./handlers/classroom-handler";
 import { registerInteractionHandlers } from "./handlers/interaction-handler";
+import { registerBoardHandlers } from "./handlers/board-handler";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ export function createRealtimeServer(): { server: http.Server; io: Server } {
     registerPresenceHandlers(io, socket);
     registerClassroomHandlers(io, socket);
     registerInteractionHandlers(io, socket);
+    registerBoardHandlers(io, socket);
   });
 
   return { server, io };

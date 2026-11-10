@@ -431,6 +431,46 @@
 - Why media presentation must be decoupled from 2D whiteboard canvas rendering.
 - How in-memory state machines handle real-time classroom polls and question upvoting at scale without database bottlenecks.
 
+### Milestone M8: Collaborative Whiteboard Transformation
+- **Status**: Completed
+- **Date**: 2026-11-10
+
+#### 1. Core Concepts Learned
+- **2D Camera Model & Coordinate Space Inversion**: How infinite spatial whiteboards translate screen coordinates (DOM pointer client pixels) into infinite world coordinates via:
+  $$x_{\text{world}} = \frac{x_{\text{screen}} - \text{camera.x}}{\text{camera.scale}}, \quad y_{\text{world}} = \frac{y_{\text{screen}} - \text{camera.y}}{\text{camera.scale}}$$
+  Implementing **focal-point zooming** ensures the world coordinate under the pointer remains stationary during wheel scaling, preventing jarring viewport jumps.
+- **Operational Delta Synchronization vs. Array Overwrites**: Why collaborative multiplayer canvases must not sync by replacing the full `CanvasElement[]` array on every debounce. Instead, granular delta operations (`create`, `update`, `delete`, `batch`) allow multiple users to draw, move, and edit independent shapes simultaneously without race conditions or element overwriting.
+- **DOM Portal Overlay for Rich Text Editing**: Replacing primitive browser modal prompts (`window.prompt()`) with floating HTML `<textarea>` portals projected precisely into screen coordinates over world-space sticky notes. This supports multi-line typing, selection, and keyboard hotkeys (`Ctrl+Enter` commit, `Esc` cancel) without blocking the main event loop.
+- **Asynchronous Image Bitmap Handling (`Konva.Image`)**: How to model and render user-dropped diagrams and screenshots (`ImageElement`) using HTML5 `Image()` asynchronous caching, aspect ratio locking, and seamless Konva transformer resizing.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/canvas.ts`: Added `ImageElement` model, `ViewportTransform` interface, and authoring metadata (`authorId`, `authorName`, `isLocked`, `zIndex`) to `BaseElement`.
+- `packages/shared/src/control-plane.ts`: Added whiteboard operational delta contracts (`BoardOpType`, `ClientBoardOpPayload`, `ServerBoardOpPayload`, `ServerBoardSyncPayload`).
+- `packages/whiteboard/src/camera.ts`: Authored pure mathematical helpers for `screenToWorld`, `worldToScreen`, `calculateZoomAtPointer`, and `clampScale`.
+- `packages/whiteboard/src/elements.ts`: Implemented `createImageElement()` factory and layering utilities (`bringForward`, `sendBackward`, `bringToFront`, `sendToBack`).
+- `packages/whiteboard/src/index.ts`: Re-exported camera module.
+- `apps/realtime/src/handlers/board-handler.ts`: Built real-time in-memory board state store and Socket.IO operational delta broadcast engine.
+- `apps/realtime/src/index.ts`: Registered board handlers on the realtime server.
+- `apps/web/src/components/board/CanvasZoomControls.tsx`: Created floating HUD with Zoom In, Zoom Out, percentage readout, and 1:1 view reset.
+- `apps/web/src/components/board/CanvasStage.tsx`: Upgraded stage with infinite camera (spacebar pan, wheel zoom), peer cursor rendering with name tags, image drag-and-drop, and inline `<textarea>` editor.
+- `apps/web/src/components/board/BoardWorkspace.tsx`: Integrated camera state, zoom HUD, and operational synchronization.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M8 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **React 19 Ref Reading in Render**:
+  - *Problem*: Reading `isSpacePressedRef.current` inside the container `className` string triggered ESLint error `react-hooks/refs`.
+  - *Root Cause*: React 19 prohibits reading refs during the render cycle.
+  - *Solution*: Transformed `isSpacePressed` into React state (`useState(false)`), which both satisfies ESLint and properly triggers visual cursor style updates.
+
+#### 4. Commands Learned
+- `pnpm --filter @collabo/whiteboard typecheck`: Typechecks the isolated canvas mathematics and element package.
+- `npx --prefix apps/realtime tsx test_m8.ts`: Executes M8 verification suite covering camera math, layering, and delta operations.
+
+#### 5. What I Can Now Explain Independently
+- The mathematical derivation of infinite canvas panning and focal-point zooming.
+- Why operational deltas are essential for concurrent multiplayer canvas synchronization.
+- How to project floating DOM elements over an HTML5 canvas for inline text editing.
+
 ---
 
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*

@@ -1,16 +1,49 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Stage, Layer, Line, Rect, Circle, Text, Group, Transformer } from "react-konva";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  Stage,
+  Layer,
+  Line,
+  Rect,
+  Circle,
+  Text,
+  Group,
+  Image as KonvaImage,
+  Transformer,
+} from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type Konva from "konva";
 import {
   CanvasElement,
-  ToolbarState,
+  CircleElement,
+  ImageElement,
   PenElement,
   RectElement,
-  CircleElement,
+  ToolbarState,
+  ViewportTransform,
 } from "@collabo/shared";
+import {
+  calculateZoomAtPointer,
+  clampScale,
+  createImageElement,
+  screenToWorld,
+  worldToScreen,
+} from "@collabo/whiteboard";
+
+export interface PeerCursor {
+  profileId: string;
+  name: string;
+  x: number; // World coordinate
+  y: number; // World coordinate
+  color?: string;
+  lastActive?: number;
+}
 
 export interface CanvasStageProps {
   elements: CanvasElement[];
@@ -19,7 +52,52 @@ export interface CanvasStageProps {
   toolbarState: ToolbarState;
   selectedId: string | null;
   onSelectElement: (id: string | null) => void;
+  camera?: ViewportTransform;
+  onCameraChange?: (camera: ViewportTransform) => void;
+  peerCursors?: PeerCursor[];
+  onCursorMove?: (worldPos: { x: number; y: number }) => void;
 }
+
+// URL Image component for asynchronously rendering uploaded / dropped images
+const CanvasURLImage: React.FC<{
+  element: ImageElement;
+  isSelectMode: boolean;
+  onClick: () => void;
+  onDragEnd: (x: number, y: number) => void;
+  onTransformEnd: (e: KonvaEventObject<Event>) => void;
+}> = ({ element, isSelectMode, onClick, onDragEnd, onTransformEnd }) => {
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!element.src) return;
+    const img = new window.Image();
+    img.src = element.src;
+    img.onload = () => setImage(img);
+  }, [element.src]);
+
+  return (
+    <KonvaImage
+      id={element.id}
+      image={image || undefined}
+      x={element.x}
+      y={element.y}
+      width={element.width}
+      height={element.height}
+      rotation={element.rotation || 0}
+      draggable={isSelectMode}
+      onClick={onClick}
+      onTap={onClick}
+      onDragEnd={(e) => onDragEnd(e.target.x(), e.target.y())}
+      onTransformEnd={onTransformEnd}
+      stroke="#cbd5e1"
+      strokeWidth={element.strokeWidth || 1}
+      cornerRadius={6}
+      shadowColor="rgba(0,0,0,0.12)"
+      shadowBlur={8}
+      shadowOffset={{ x: 2, y: 3 }}
+    />
+  );
+};
 
 export const CanvasStage: React.FC<CanvasStageProps> = ({
   elements,
@@ -28,19 +106,63 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   toolbarState,
   selectedId,
   onSelectElement,
+  camera: externalCamera,
+  onCameraChange,
+  peerCursors = [],
+  onCursorMove,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
 
-  // Refs for tracking drawing in progress without waiting for React re-render cycles
+  // Camera State: World position (x, y) and zoom scale factor
+  const [internalCamera, setInternalCamera] = useState<ViewportTransform>({
+    x: 0,
+    y: 0,
+    scale: 1,
+  });
+  const camera = externalCamera || internalCamera;
+
+  const updateCamera = useCallback(
+    (newCamera: ViewportTransform) => {
+      if (onCameraChange) {
+        onCameraChange(newCamera);
+      } else {
+        setInternalCamera(newCamera);
+      }
+    },
+    [onCameraChange]
+  );
+
+  // Drawing & interaction tracking refs
   const isDrawingRef = useRef(false);
   const activeElementIdRef = useRef<string | null>(null);
-  const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragStartWorldPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const transformerRef = useRef<Konva.Transformer>(null);
+
+  // Camera panning tracking refs
+  const isPanningRef = useRef(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const panStartRef = useRef<{
+    pointerX: number;
+    pointerY: number;
+    camX: number;
+    camY: number;
+  }>({ pointerX: 0, pointerY: 0, camX: 0, camY: 0 });
+
+  // Inline sticky text editor state
+  const [editingElement, setEditingElement] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text: string;
+    fontSize?: number;
+  } | null>(null);
 
   const isSelectMode = toolbarState.activeTool === "select";
 
-  // Dynamically resize Stage to fill the container 100%
+  // Resize Stage to fill container
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
@@ -50,13 +172,55 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         });
       }
     };
-
     updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Attach Transformer to the selected node whenever selection changes
+  // Keyboard listeners: Spacebar for panning, Delete/Backspace for element deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space" && !e.repeat) {
+        setIsSpacePressed(true);
+      }
+
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedId &&
+        isSelectMode
+      ) {
+        e.preventDefault();
+        const nextElements = elements.filter((el) => el.id !== selectedId);
+        onCommitElements(nextElements);
+        onSelectElement(null);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setIsSpacePressed(false);
+        isPanningRef.current = false;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [selectedId, isSelectMode, elements, onCommitElements, onSelectElement]);
+
+  // Attach Transformer to the selected node
   useEffect(() => {
     if (transformerRef.current) {
       const stage = transformerRef.current.getStage();
@@ -73,46 +237,49 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     }
   }, [selectedId, isSelectMode, elements]);
 
-  // Keyboard shortcut: Delete or Backspace to remove selected element
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
+  // 1. Mouse Wheel: Focal-point zoom around cursor
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const stage = e.target.getStage();
+    if (!stage) return;
 
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedId && isSelectMode) {
-        e.preventDefault();
-        const nextElements = elements.filter((el) => el.id !== selectedId);
-        onCommitElements(nextElements);
-        onSelectElement(null);
-      }
-    };
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, isSelectMode, elements, onCommitElements, onSelectElement]);
+    const zoomFactor = e.evt.deltaY < 0 ? 1.1 : 0.9;
+    const targetScale = clampScale(camera.scale * zoomFactor, 0.1, 5.0);
+    const newCamera = calculateZoomAtPointer(pointer, camera, targetScale);
+    updateCamera(newCamera);
+  };
 
-  // 1. Mouse/Touch Down: Start drawing, place initial element, or select
+  // 2. Pointer Down: Start drawing, select, or initiate panning
   const handlePointerDown = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
 
-    const pos = stage.getPointerPosition();
-    if (!pos) return;
+    const screenPos = stage.getPointerPosition();
+    if (!screenPos) return;
 
-    // Check if clicked the empty stage background or layer
-    const isStageOrLayer = e.target === stage || e.target.getType() === "Layer";
+    // Check if middle click or Spacebar is held -> Pan mode
+    const isMiddleClick =
+      "button" in e.evt && (e.evt as MouseEvent).button === 1;
+    if (isSpacePressed || isMiddleClick) {
+      isPanningRef.current = true;
+      panStartRef.current = {
+        pointerX: screenPos.x,
+        pointerY: screenPos.y,
+        camX: camera.x,
+        camY: camera.y,
+      };
+      return;
+    }
 
-    if (isStageOrLayer) {
-      // Deselect when clicking empty space
-      if (isSelectMode) {
-        onSelectElement(null);
-      }
+    const worldPos = screenToWorld(screenPos, camera);
+    const isStageOrLayer =
+      e.target === stage || e.target.getType() === "Layer";
+
+    if (isStageOrLayer && isSelectMode) {
+      onSelectElement(null);
     }
 
     if (!isStageOrLayer && toolbarState.activeTool === "eraser") {
@@ -129,7 +296,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         type: "pen",
         color: toolbarState.activeColor,
         strokeWidth: toolbarState.strokeWidth,
-        points: [pos.x, pos.y],
+        points: [worldPos.x, worldPos.y],
       };
 
       onElementsChange([...elements, newPen]);
@@ -137,15 +304,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       isDrawingRef.current = true;
       const id = `rect-${Date.now()}`;
       activeElementIdRef.current = id;
-      dragStartPosRef.current = { x: pos.x, y: pos.y };
+      dragStartWorldPosRef.current = { x: worldPos.x, y: worldPos.y };
 
       const newRect: RectElement = {
         id,
         type: "rectangle",
         color: toolbarState.activeColor,
         strokeWidth: toolbarState.strokeWidth,
-        x: pos.x,
-        y: pos.y,
+        x: worldPos.x,
+        y: worldPos.y,
         width: 0,
         height: 0,
         fill: `${toolbarState.activeColor}15`,
@@ -156,15 +323,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       isDrawingRef.current = true;
       const id = `circle-${Date.now()}`;
       activeElementIdRef.current = id;
-      dragStartPosRef.current = { x: pos.x, y: pos.y };
+      dragStartWorldPosRef.current = { x: worldPos.x, y: worldPos.y };
 
       const newCircle: CircleElement = {
         id,
         type: "circle",
         color: toolbarState.activeColor,
         strokeWidth: toolbarState.strokeWidth,
-        x: pos.x,
-        y: pos.y,
+        x: worldPos.x,
+        y: worldPos.y,
         radius: 0,
         fill: `${toolbarState.activeColor}15`,
       };
@@ -178,13 +345,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       const newSticky: CanvasElement = {
         id,
         type: "sticky",
-        x: Math.round(pos.x - 70),
-        y: Math.round(pos.y - 70),
+        x: Math.round(worldPos.x - 70),
+        y: Math.round(worldPos.y - 70),
         width: 140,
         height: 140,
         color: toolbarState.activeColor,
         strokeWidth: 1,
-        text: "Double-click to brainstorm ideas...",
+        text: "Double-click to write notes...",
         fill: randomFill,
       };
 
@@ -194,11 +361,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       const newText: CanvasElement = {
         id,
         type: "text",
-        x: Math.round(pos.x),
-        y: Math.round(pos.y),
+        x: Math.round(worldPos.x),
+        y: Math.round(worldPos.y),
         color: toolbarState.activeColor,
         strokeWidth: 1,
-        text: "COLLABO Canvas Text",
+        text: "Double-click to type text",
         fontSize: 20,
       };
 
@@ -206,15 +373,32 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     }
   };
 
-  // 2. Mouse/Touch Move: Update line points or box/circle dimensions live
+  // 3. Pointer Move: Update pan offset, active drawing geometry, or broadcast cursor
   const handlePointerMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (!isDrawingRef.current || !activeElementIdRef.current) return;
-
     const stage = e.target.getStage();
     if (!stage) return;
 
-    const pos = stage.getPointerPosition();
-    if (!pos) return;
+    const screenPos = stage.getPointerPosition();
+    if (!screenPos) return;
+
+    // Handle viewport camera panning
+    if (isPanningRef.current) {
+      const dx = screenPos.x - panStartRef.current.pointerX;
+      const dy = screenPos.y - panStartRef.current.pointerY;
+      updateCamera({
+        ...camera,
+        x: panStartRef.current.camX + dx,
+        y: panStartRef.current.camY + dy,
+      });
+      return;
+    }
+
+    const worldPos = screenToWorld(screenPos, camera);
+    if (onCursorMove) {
+      onCursorMove(worldPos);
+    }
+
+    if (!isDrawingRef.current || !activeElementIdRef.current) return;
 
     const activeId = activeElementIdRef.current;
 
@@ -225,26 +409,28 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         if (el.type === "pen") {
           return {
             ...el,
-            points: [...el.points, pos.x, pos.y],
+            points: [...el.points, worldPos.x, worldPos.y],
           };
         }
 
         if (el.type === "rectangle") {
-          const startX = dragStartPosRef.current.x;
-          const startY = dragStartPosRef.current.y;
+          const startX = dragStartWorldPosRef.current.x;
+          const startY = dragStartWorldPosRef.current.y;
           return {
             ...el,
-            x: Math.min(startX, pos.x),
-            y: Math.min(startY, pos.y),
-            width: Math.abs(pos.x - startX),
-            height: Math.abs(pos.y - startY),
+            x: Math.min(startX, worldPos.x),
+            y: Math.min(startY, worldPos.y),
+            width: Math.abs(worldPos.x - startX),
+            height: Math.abs(worldPos.y - startY),
           };
         }
 
         if (el.type === "circle") {
-          const startX = dragStartPosRef.current.x;
-          const startY = dragStartPosRef.current.y;
-          const radius = Math.round(Math.hypot(pos.x - startX, pos.y - startY));
+          const startX = dragStartWorldPosRef.current.x;
+          const startY = dragStartWorldPosRef.current.y;
+          const radius = Math.round(
+            Math.hypot(worldPos.x - startX, worldPos.y - startY)
+          );
           return {
             ...el,
             radius,
@@ -256,8 +442,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     );
   };
 
-  // 3. Mouse/Touch Up: Finalize drawing and commit snapshot to history
+  // 4. Pointer Up: Finalize drawing or camera panning
   const handlePointerUp = () => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      return;
+    }
+
     if (!isDrawingRef.current) return;
 
     const activeId = activeElementIdRef.current;
@@ -281,7 +472,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     activeElementIdRef.current = null;
   };
 
-  // 4. Element interaction: selection, deletion, or text editing
+  // 5. Element Selection & Dragging
   const handleElementClick = (elementId: string) => {
     if (toolbarState.activeTool === "eraser") {
       onCommitElements(elements.filter((el) => el.id !== elementId));
@@ -292,13 +483,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   };
 
   const handleDragEnd = useCallback(
-    (id: string, newX: number, newY: number) => {
+    (id: string, newWorldX: number, newWorldY: number) => {
       const updated = elements.map((el) => {
         if (el.id !== id) return el;
         return {
           ...el,
-          x: Math.round(newX),
-          y: Math.round(newY),
+          x: Math.round(newWorldX),
+          y: Math.round(newWorldY),
         };
       });
       onCommitElements(updated);
@@ -306,14 +497,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     [elements, onCommitElements]
   );
 
-  // 5. Transformer: Resizing and Rotating
+  // 6. Transformer Transformation Handlers
   const handleTransformEnd = (e: KonvaEventObject<Event>, id: string) => {
     const node = e.target;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
     const rotation = Math.round(node.rotation());
 
-    // Reset internal scale so future transforms don't compound
     node.scaleX(1);
     node.scaleY(1);
 
@@ -374,30 +564,145 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         };
       }
 
+      if (el.type === "image") {
+        return {
+          ...el,
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          width: Math.max(20, Math.round(node.width() * scaleX)),
+          height: Math.max(20, Math.round(node.height() * scaleY)),
+          rotation,
+        };
+      }
+
       return el;
     });
 
     onCommitElements(updated);
   };
 
-  // 6. Double click to edit sticky note or text
+  // 7. Inline Floating Textarea Editor Trigger
   const handleDoubleClick = (el: CanvasElement) => {
-    if (el.type === "sticky" || el.type === "text") {
-      const newText = window.prompt("Edit text:", el.text);
-      if (newText !== null && newText.trim() !== "") {
-        const updated = elements.map((item) =>
-          item.id === el.id ? { ...item, text: newText.trim() } : item
-        );
-        onCommitElements(updated);
-      }
+    if (el.type === "sticky") {
+      setEditingElement({
+        id: el.id,
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        text: el.text,
+      });
+    } else if (el.type === "text") {
+      setEditingElement({
+        id: el.id,
+        x: el.x,
+        y: el.y,
+        width: Math.max(120, el.text.length * 10),
+        height: 60,
+        text: el.text,
+        fontSize: el.fontSize,
+      });
     }
   };
 
+  const handleCommitInlineEdit = () => {
+    if (!editingElement) return;
+    const updated = elements.map((item) =>
+      item.id === editingElement.id
+        ? ({ ...item, text: editingElement.text } as CanvasElement)
+        : item
+    );
+    onCommitElements(updated);
+    setEditingElement(null);
+  };
+
+  // 8. Drag and Drop Image File Upload Handler
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    if (!file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      if (!src) return;
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      const screenX = rect ? e.clientX - rect.left : e.clientX;
+      const screenY = rect ? e.clientY - rect.top : e.clientY;
+
+      const worldPos = screenToWorld({ x: screenX, y: screenY }, camera);
+
+      const newImg = createImageElement({
+        x: Math.round(worldPos.x - 160),
+        y: Math.round(worldPos.y - 120),
+        src,
+        width: 320,
+        height: 240,
+      });
+
+      onCommitElements([...elements, newImg]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Compute inline editor screen space coordinates
+  const inlineScreenPos = editingElement
+    ? worldToScreen({ x: editingElement.x, y: editingElement.y }, camera)
+    : null;
+
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+    <div
+      ref={containerRef}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+      className={`relative h-full w-full overflow-hidden ${
+        isSpacePressed ? "cursor-grab" : ""
+      }`}
+    >
+      {/* Floating Inline HTML Textarea Editor (Replacing modal prompt) */}
+      {editingElement && inlineScreenPos && (
+        <textarea
+          value={editingElement.text}
+          autoFocus
+          onChange={(e) =>
+            setEditingElement({ ...editingElement, text: e.target.value })
+          }
+          onBlur={handleCommitInlineEdit}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setEditingElement(null);
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              handleCommitInlineEdit();
+            }
+          }}
+          style={{
+            position: "absolute",
+            top: `${inlineScreenPos.y + 10}px`,
+            left: `${inlineScreenPos.x + 10}px`,
+            width: `${Math.max(100, (editingElement.width - 20) * camera.scale)}px`,
+            height: `${Math.max(60, (editingElement.height - 20) * camera.scale)}px`,
+            zIndex: 35,
+            fontSize: `${Math.max(
+              12,
+              (editingElement.fontSize || 14) * camera.scale
+            )}px`,
+          }}
+          className="rounded-lg border border-indigo-400 bg-white/95 p-2 shadow-xl outline-none ring-2 ring-indigo-300 resize-none font-sans"
+        />
+      )}
+
+      {/* Main Konva 2D Stage */}
       <Stage
         width={dimensions.width}
         height={dimensions.height}
+        x={camera.x}
+        y={camera.y}
+        scaleX={camera.scale}
+        scaleY={camera.scale}
+        onWheel={handleWheel}
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUp}
@@ -544,17 +849,57 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   />
                 );
 
+              case "image":
+                return (
+                  <CanvasURLImage
+                    key={el.id}
+                    element={el}
+                    isSelectMode={isSelectMode}
+                    onClick={() => handleElementClick(el.id)}
+                    onDragEnd={(newX, newY) => handleDragEnd(el.id, newX, newY)}
+                    onTransformEnd={(e) => handleTransformEnd(e, el.id)}
+                  />
+                );
+
               default:
                 return null;
             }
           })}
 
-          {/* Konva Transformer Bounding Box with Resize Handles */}
+          {/* Peer Presence Live Cursors */}
+          {peerCursors.map((peer) => (
+            <Group key={peer.profileId} x={peer.x} y={peer.y}>
+              <Circle
+                radius={4}
+                fill={peer.color || "#ec4899"}
+                stroke="#ffffff"
+                strokeWidth={1.5}
+              />
+              <Rect
+                x={8}
+                y={-8}
+                width={Math.max(60, peer.name.length * 7 + 10)}
+                height={16}
+                fill={peer.color || "#ec4899"}
+                cornerRadius={4}
+              />
+              <Text
+                x={12}
+                y={-6}
+                text={peer.name}
+                fontSize={9}
+                fontFamily="sans-serif"
+                fontStyle="bold"
+                fill="#ffffff"
+              />
+            </Group>
+          ))}
+
+          {/* Konva Transformer Bounding Box */}
           {isSelectMode && (
             <Transformer
               ref={transformerRef}
               boundBoxFunc={(oldBox, newBox) => {
-                // Minimum size constraint
                 if (newBox.width < 15 || newBox.height < 15) {
                   return oldBox;
                 }

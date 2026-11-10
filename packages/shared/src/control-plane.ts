@@ -5,6 +5,7 @@
 
 import { ClassroomMode, ParticipantRole } from "./classroom";
 import { SystemRole } from "./institution";
+import { CanvasElement } from "./canvas";
 
 // -------------------------------------------------------------
 // 1. Participant & Presence Models
@@ -260,5 +261,36 @@ export interface ServerQuestionAddedPayload {
 
 export interface ServerQuestionUpdatedPayload {
   question: QAQuestion;
+}
+
+// -------------------------------------------------------------
+// 5. Collaborative Whiteboard Operations (Multiplayer Sync)
+// -------------------------------------------------------------
+
+export type BoardOpType = "create" | "update" | "delete" | "batch";
+
+export interface ClientBoardOpPayload {
+  roomId: string;
+  op: BoardOpType;
+  element?: CanvasElement;
+  patch?: Partial<CanvasElement>;
+  elementId?: string;
+  elements?: CanvasElement[];
+}
+
+export interface ServerBoardOpPayload {
+  roomId: string;
+  op: BoardOpType;
+  element?: CanvasElement;
+  patch?: Partial<CanvasElement>;
+  elementId?: string;
+  elements?: CanvasElement[];
+  senderProfileId: string;
+  timestamp: string;
+}
+
+export interface ServerBoardSyncPayload {
+  roomId: string;
+  elements: CanvasElement[];
 }
 

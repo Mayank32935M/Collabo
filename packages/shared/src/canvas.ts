@@ -104,7 +104,13 @@ export interface ToolbarState {
 // Canvas Elements (Data Models for In-Memory & Future Database)
 // -------------------------------------------------------------
 
-export type ElementType = "pen" | "rectangle" | "circle" | "sticky" | "text";
+export type ElementType =
+  | "pen"
+  | "rectangle"
+  | "circle"
+  | "sticky"
+  | "text"
+  | "image";
 
 export interface BaseElement {
   id: string;
@@ -112,6 +118,10 @@ export interface BaseElement {
   color: string;
   strokeWidth: number;
   rotation?: number;
+  authorId?: string;
+  authorName?: string;
+  isLocked?: boolean;
+  zIndex?: number;
 }
 
 export interface PenElement extends BaseElement {
@@ -156,9 +166,26 @@ export interface TextElement extends BaseElement {
   fontSize: number;
 }
 
+export interface ImageElement extends BaseElement {
+  type: "image";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  src: string;
+  aspectRatio?: number;
+}
+
 export type CanvasElement =
   | PenElement
   | RectElement
   | CircleElement
   | StickyElement
-  | TextElement;
+  | TextElement
+  | ImageElement;
+
+export interface ViewportTransform {
+  x: number;
+  y: number;
+  scale: number;
+}

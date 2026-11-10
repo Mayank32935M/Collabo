@@ -222,7 +222,7 @@ Following the completion of the baseline single-user whiteboard (Steps 1–6), C
 | **M5** | Real-Time Control Plane | Dedicated Node.js + Socket.IO server, speaking queue, lecture vs interactive modes | **COMPLETED** |
 | **M6** | Voice Infrastructure & SFU Integration | LiveKit WebRTC SFU, 250+ participant audio routing, mic permissions | **COMPLETED** |
 | **M7** | Screen Sharing & Classroom Interaction | Video media track presentation, chat, live polls, Q&A | **COMPLETED** |
-| **M8** | Collaborative Whiteboard Transformation | Shared multiplayer canvas, object ownership, layers, image/PDF support | `PLANNED` |
+| **M8** | Collaborative Whiteboard Transformation | Shared multiplayer canvas, object ownership, layers, image/PDF support | **COMPLETED** |
 | **M9** | COLLABO Intelligence & AI Assistance | Mind-map generation, lecture summaries, board-aware Q&A, flashcards | `PLANNED` |
 | **M10** | Production Readiness, Security & Load Testing | E2E test suites, load testing 250+ concurrent users, security hardening | `PLANNED` |
 
