@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@collabo/ai": ["../../packages/ai/src/index.ts"],
       "@collabo/auth": ["../../packages/auth/src/index.ts"],
       "@collabo/database": ["../../packages/database/src/index.ts"],
       "@collabo/shared": ["../../packages/shared/src/index.ts"],

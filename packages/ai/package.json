@@ -1,0 +1,18 @@
+{
+  "name": "@collabo/ai",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@collabo/shared": "workspace:*",
+    "@collabo/whiteboard": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

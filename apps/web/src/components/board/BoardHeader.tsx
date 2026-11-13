@@ -15,6 +15,8 @@ export interface BoardHeaderProps {
   onToggleScreenShare?: () => void;
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
+  isAIDrawerOpen?: boolean;
+  onToggleAIDrawer?: () => void;
 }
 
 export const BoardHeader: React.FC<BoardHeaderProps> = ({
@@ -25,6 +27,8 @@ export const BoardHeader: React.FC<BoardHeaderProps> = ({
   onToggleScreenShare,
   isSidebarOpen = false,
   onToggleSidebar,
+  isAIDrawerOpen = false,
+  onToggleAIDrawer,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -137,6 +141,24 @@ export const BoardHeader: React.FC<BoardHeaderProps> = ({
           >
             <span>💬</span>
             <span className="hidden sm:inline">Classroom</span>
+          </Button>
+        )}
+
+        {/* AI Assistant Drawer Toggle */}
+        {onToggleAIDrawer && (
+          <Button
+            variant={isAIDrawerOpen ? "primary" : "outline"}
+            size="sm"
+            onClick={onToggleAIDrawer}
+            title="Toggle COLLABO AI Assistant (Mind Maps, Q&A, Recaps)"
+            className={
+              isAIDrawerOpen
+                ? "bg-indigo-600 shadow-xs"
+                : "border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            }
+          >
+            <span>✨</span>
+            <span className="hidden sm:inline">AI Assistant</span>
           </Button>
         )}
 

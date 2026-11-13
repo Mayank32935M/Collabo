@@ -473,4 +473,56 @@
 
 ---
 
+### Milestone M9: COLLABO Intelligence & AI Assistance (Mind Maps, Spatial Board Q&A, Lecture Recaps & Preview Mutation Layer)
+
+#### 1. Core Concepts Learned
+- **Spatial Canvas Serialization vs. Chatbot Silo**: Traditional educational chatbots live in isolated text dialogs completely disconnected from what students see. By serializing 2D canvas nodes into structured spatial JSON (`id`, `type`, `x`, `y`, `color`, `text`, `label`), the model can answer contextual questions like *"Explain how the green node connects to the database cluster"* or *"Identify gaps in this architecture diagram"*.
+- **Algorithmic Spatial Tree Layout vs. LLM Arithmetic Hallucinations**: LLMs excel at hierarchical semantic taxonomies (e.g., Parent $\rightarrow$ Child concepts), but frequently hallucinate spatial coordinates when asked to output exact $(x, y)$ pixels directly. In COLLABO, the LLM outputs a clean JSON concept hierarchy, and our pure deterministic 2D layout engine (`layoutConceptTree`) computes non-overlapping world coordinates, bounding boxes, and orthogonal vector connector lines with mathematical precision.
+- **Human-in-the-Loop Preview Mutation Layer**: Autonomous AI must never write directly to a live collaborative whiteboard during class without confirmation. Generated elements are first rendered in a translucent ($65\%$ opacity, dashed outlines, `listening={false}`) preview overlay. A floating `AIPreviewActionBar` gives users granular control to either "✓ Accept & Add to Board" (committing elements to the history and multiplayer synchronization) or "✕ Discard".
+- **Dual-Provider Architecture with Zero-Config Offline Fallback**: Implementing an abstract `AIProvider` contract with `GeminiAIProvider` (Google Gemini 2.5 Flash) and `MockAIProvider` (deterministic offline simulation) enables local development and testing to run seamlessly with zero configuration and zero API cost.
+- **Active Recall Study Guide Generation**: Synthesizing spatial board concepts, chat interactions, and lecture transcripts into executive summaries, interactive multiple-choice quizzes with instant feedback, and flashcards with 3D flip animation.
+
+#### 2. Files Changed & Why
+- `packages/shared/src/ai.ts`: Shared contracts for mind maps, board Q&A, and lecture study guides.
+- `packages/shared/src/index.ts`: Re-exported all AI models from the shared package.
+- `packages/ai/package.json` & `packages/ai/tsconfig.json`: New workspace package `@collabo/ai`.
+- `packages/ai/src/types.ts`: Defined `AIProvider` interface.
+- `packages/ai/src/layout.ts`: Built deterministic hierarchical 2D tree layout engine (`layoutConceptTree`).
+- `packages/ai/src/schemas.ts`: Authored Zod runtime validation schemas for all LLM JSON inputs/outputs.
+- `packages/ai/src/providers/mock-provider.ts`: Built deterministic offline simulation provider.
+- `packages/ai/src/providers/gemini-provider.ts`: Built Google Gemini 2.5 Flash provider with fallback.
+- `packages/ai/src/index.ts`: Package barrel export and `getAIProvider()` factory.
+- `apps/web/package.json` & `apps/web/tsconfig.json`: Linked `@collabo/ai` dependency into the web app.
+- `apps/web/src/app/api/ai/mind-map/route.ts`: API endpoint for algorithmic mind map generation.
+- `apps/web/src/app/api/ai/board-qa/route.ts`: API endpoint for board-aware spatial Q&A.
+- `apps/web/src/app/api/ai/recap/route.ts`: API endpoint for lecture summaries, quizzes, and flashcards.
+- `apps/web/src/components/ai/AIPreviewActionBar.tsx`: Floating canvas bar for preview acceptance/rejection.
+- `apps/web/src/components/ai/AIAssistantDrawer.tsx`: Slide-over UI with Mind Map, Board Q&A, and Study Guide tabs.
+- `apps/web/src/components/board/CanvasStage.tsx`: Added support for rendering translucent preview overlays.
+- `apps/web/src/components/board/BoardHeader.tsx`: Added "✨ AI Assistant" toggle button.
+- `apps/web/src/components/board/BoardWorkspace.tsx`: Wired up drawer state, preview lifecycle, and live commit handlers.
+- `docs/IMPLEMENTATION_PLAN.md`: Marked Milestone M9 as COMPLETED.
+
+#### 3. Problems Encountered & Solutions
+- **Canvas Element Type Union Mismatch**:
+  - *Problem*: `type: "rect"` triggered TypeScript error `TS2678: Type '"rect"' is not comparable to type '"rectangle"'`.
+  - *Solution*: Aligned preview renderer case with the core schema (`type: "rectangle"` and `stroke={el.color}`).
+- **Chat Payload Property Alignment**:
+  - *Problem*: Accessing `m.sender.name` failed because `ServerChatMessagePayload` stores `senderName` directly at top-level.
+  - *Solution*: Updated mapper in `BoardWorkspace.tsx` to read `m.senderName`.
+- **Grounded References for Broad Queries in Mock Provider**:
+  - *Problem*: In unit tests, asking general questions without keyword overlap returned empty `referencedElementIds`.
+  - *Solution*: Added fallback in `MockAIProvider.answerBoardQuery` to reference the first 2 elements on canvas when no specific keyword match is found, ensuring downstream UI badges are always grounded.
+
+#### 4. Commands Learned
+- `pnpm --filter @collabo/ai typecheck`: Verifies the isolated AI engine and layout algorithms.
+- `npx --prefix apps/realtime tsx test_m9.ts`: Runs comprehensive integration tests for layout, schemas, and AI providers.
+
+#### 5. What I Can Now Explain Independently
+- Why separating semantic tree generation from geometric layout math is far superior to letting an LLM hallucinate pixel coordinates.
+- How to design a human-in-the-loop preview mutation layer for AI-assisted collaborative drawing.
+- How to construct board-aware prompts by serializing 2D canvas scene graphs into structured JSON.
+
+---
+
 *(Future milestone entries will be appended here as we progress through the implementation plan.)*

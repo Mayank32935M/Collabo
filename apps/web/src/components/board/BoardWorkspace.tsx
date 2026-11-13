@@ -9,12 +9,15 @@ import { CanvasZoomControls } from "@/components/board/CanvasZoomControls";
 import { useCanvasHistory } from "@/hooks/useCanvasHistory";
 import { ScreenShareStage } from "@/components/classroom/ScreenShareStage";
 import { ClassroomSidebar } from "@/components/classroom/ClassroomSidebar";
+import { AIPreviewActionBar } from "@/components/ai/AIPreviewActionBar";
+import { AIAssistantDrawer } from "@/components/ai/AIAssistantDrawer";
 import { ScreenShareController } from "@collabo/voice";
 import { clampScale } from "@collabo/whiteboard";
 import {
   ActivePollState,
   ActiveScreenShareState,
   CANVAS_TOOLS,
+  CanvasElement,
   CanvasTool,
   QAQuestion,
   ServerChatMessagePayload,
@@ -135,6 +138,32 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
   const [messages, setMessages] = useState<ServerChatMessagePayload[]>([]);
   const [activePoll, setActivePoll] = useState<ActivePollState | null>(null);
   const [questions, setQuestions] = useState<QAQuestion[]>([]);
+
+  // Milestone M9: COLLABO Intelligence & AI Assistance State
+  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState(false);
+  const [previewElements, setPreviewElements] = useState<CanvasElement[] | null>(null);
+  const [previewTopic, setPreviewTopic] = useState<string | undefined>(undefined);
+
+  const handlePreviewMindMap = (newElements: CanvasElement[], topic: string) => {
+    setPreviewElements(newElements);
+    setPreviewTopic(topic);
+    setLastAction(`AI Mind Map preview active (${newElements.length} elements)`);
+  };
+
+  const handleAcceptPreview = () => {
+    if (!previewElements || previewElements.length === 0) return;
+    const updated = [...elements, ...previewElements];
+    commitElements(updated);
+    setPreviewElements(null);
+    setPreviewTopic(undefined);
+    setLastAction("AI Mind Map committed to board");
+  };
+
+  const handleDiscardPreview = () => {
+    setPreviewElements(null);
+    setPreviewTopic(undefined);
+    setLastAction("AI Mind Map preview discarded");
+  };
 
   const handleToggleScreenShare = async () => {
     if (!screenControllerRef.current) {
@@ -306,10 +335,21 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
         onToggleScreenShare={handleToggleScreenShare}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        isAIDrawerOpen={isAIDrawerOpen}
+        onToggleAIDrawer={() => setIsAIDrawerOpen(!isAIDrawerOpen)}
       />
 
       {/* Main Board Workspace Shell */}
       <main className="relative flex-1 overflow-hidden bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] select-none">
+        {/* Milestone M9: AI Preview Action Bar */}
+        {previewElements && previewElements.length > 0 && (
+          <AIPreviewActionBar
+            elementCount={previewElements.length}
+            topic={previewTopic}
+            onAccept={handleAcceptPreview}
+            onDiscard={handleDiscardPreview}
+          />
+        )}
         {/* Active Presentation Screen Share Overlay */}
         {activeScreenShare && (
           <div className="absolute top-4 left-4 z-20 w-80 sm:w-96 md:w-[480px]">
@@ -384,6 +424,7 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
         {/* Konva 2D Canvas Stage */}
         <CanvasStage
           elements={elements}
+          previewElements={previewElements || undefined}
           onElementsChange={setElementsLive}
           onCommitElements={commitElements}
           toolbarState={toolbarState}
@@ -409,6 +450,19 @@ export const BoardWorkspace: React.FC<BoardWorkspaceProps> = ({ roomId }) => {
           onAskQuestion={handleAskQuestion}
           onUpvoteQuestion={handleUpvoteQuestion}
           onAnswerQuestion={handleAnswerQuestion}
+        />
+
+        {/* Milestone M9: COLLABO Intelligence Assistant Drawer */}
+        <AIAssistantDrawer
+          isOpen={isAIDrawerOpen}
+          onClose={() => setIsAIDrawerOpen(false)}
+          boardElements={elements}
+          chatMessages={messages.map((m) => ({
+            senderName: m.senderName,
+            body: m.body,
+          }))}
+          onPreviewMindMap={handlePreviewMindMap}
+          onSelectElement={setSelectedId}
         />
       </main>
     </div>

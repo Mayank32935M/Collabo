@@ -47,6 +47,7 @@ export interface PeerCursor {
 
 export interface CanvasStageProps {
   elements: CanvasElement[];
+  previewElements?: CanvasElement[];
   onElementsChange: (elements: CanvasElement[]) => void;
   onCommitElements: (elements: CanvasElement[]) => void;
   toolbarState: ToolbarState;
@@ -101,6 +102,7 @@ const CanvasURLImage: React.FC<{
 
 export const CanvasStage: React.FC<CanvasStageProps> = ({
   elements,
+  previewElements = [],
   onElementsChange,
   onCommitElements,
   toolbarState,
@@ -865,6 +867,98 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 return null;
             }
           })}
+
+          {/* AI Mind Map Preview Elements Layer (65% opacity, dashed, non-interactive overlay) */}
+          {previewElements.length > 0 && (
+            <Group opacity={0.65} listening={false}>
+              {previewElements.map((el) => {
+                switch (el.type) {
+                  case "pen":
+                    return (
+                      <Line
+                        key={`preview-${el.id}`}
+                        points={el.points}
+                        stroke={el.color}
+                        strokeWidth={el.strokeWidth}
+                        dash={[6, 4]}
+                        tension={0.4}
+                        lineCap="round"
+                        lineJoin="round"
+                      />
+                    );
+                  case "sticky":
+                    return (
+                      <Group key={`preview-${el.id}`} x={el.x} y={el.y}>
+                        <Rect
+                          width={el.width}
+                          height={el.height}
+                          fill={el.fill}
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          dash={[6, 4]}
+                          shadowColor="rgba(99,102,241,0.2)"
+                          shadowBlur={10}
+                          cornerRadius={6}
+                        />
+                        <Text
+                          text={el.text}
+                          x={14}
+                          y={14}
+                          width={el.width - 28}
+                          height={el.height - 28}
+                          fontSize={13}
+                          fontFamily="sans-serif"
+                          fill="#1e293b"
+                        />
+                      </Group>
+                    );
+                  case "rectangle":
+                    return (
+                      <Rect
+                        key={`preview-${el.id}`}
+                        x={el.x}
+                        y={el.y}
+                        width={el.width}
+                        height={el.height}
+                        fill={el.fill || "transparent"}
+                        stroke={el.color || "#6366f1"}
+                        strokeWidth={el.strokeWidth || 2}
+                        dash={[6, 4]}
+                        cornerRadius={4}
+                      />
+                    );
+                  case "circle":
+                    return (
+                      <Circle
+                        key={`preview-${el.id}`}
+                        x={el.x}
+                        y={el.y}
+                        radius={el.radius}
+                        fill={el.fill || "transparent"}
+                        stroke={el.color || "#6366f1"}
+                        strokeWidth={el.strokeWidth || 2}
+                        dash={[6, 4]}
+                      />
+                    );
+                  case "text":
+                    return (
+                      <Text
+                        key={`preview-${el.id}`}
+                        x={el.x}
+                        y={el.y}
+                        text={el.text}
+                        fontSize={el.fontSize}
+                        fontFamily="sans-serif"
+                        fontStyle="bold"
+                        fill={el.color}
+                      />
+                    );
+                  default:
+                    return null;
+                }
+              })}
+            </Group>
+          )}
 
           {/* Peer Presence Live Cursors */}
           {peerCursors.map((peer) => (

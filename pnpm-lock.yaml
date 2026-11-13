@@ -45,6 +45,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@collabo/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@collabo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -100,6 +103,22 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
+  packages/ai:
+    dependencies:
+      '@collabo/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@collabo/whiteboard':
+        specifier: workspace:*
+        version: link:../whiteboard
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -2448,6 +2467,9 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -4912,5 +4934,7 @@ snapshots:
   zod-validation-error@4.0.2(zod@4.6.7):
     dependencies:
       zod: 4.6.7
+
+  zod@3.25.76: {}
 
   zod@4.6.7: {}
