@@ -8,6 +8,9 @@
     "dev:all": "pnpm --parallel --filter @collabo/* dev",
     "dev:realtime": "pnpm --filter @collabo/realtime dev",
     "build": "pnpm --filter @collabo/web build",
+    "test": "npx --prefix apps/realtime tsx scripts/run-all-tests.ts",
+    "test:unit": "npx --prefix apps/realtime tsx scripts/test-unit-integration.ts",
+    "test:load": "npx --prefix apps/realtime tsx scripts/load-test-control-plane.ts",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },
